@@ -1,0 +1,4 @@
+# Dependencies for regenerating training data and retraining the classifier
+# (scripts/generate_training_data.py, scripts/train_model.py).
+-r requirements.txt
+pandas==3.0.6
