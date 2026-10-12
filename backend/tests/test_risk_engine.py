@@ -1,6 +1,5 @@
 """Tests for the enhanced risk engine v3."""
 
-import pytest
 from app.services.risk_engine import assess_risk
 
 

@@ -1,4 +1,3 @@
-import pytest
 from app.services.preprocessor import clean_text
 
 
