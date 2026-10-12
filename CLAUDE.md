@@ -83,7 +83,8 @@ Classifier, spaCy, and Supabase calls are synchronous, so routes run them in the
 ### Cold-start handling (Render free tier)
 - `GET /wake` returns instantly with no I/O. `GET /health` returns `{"status": "ok"}`.
 - `GET /keepalive` is for scheduled pingers. It also makes a tiny anon PostgREST read (`services/keepalive.py`, cached for 60 s) so the free Supabase project isn't paused, and returns 503 if the database ping fails.
-- `.github/workflows/keep-alive.yml` hits `/keepalive` every 10 minutes. The repo variable `BACKEND_URL` overrides the Render URL. `scripts/keep_alive.py` does the same ping once, for other schedulers.
+- The primary pinger is a Supabase `pg_cron` job, `senti-mind-keepalive` (`supabase/migrations/20261012130000_keepalive_cron.sql`). It calls `/keepalive` via `pg_net` every 10 minutes. Check it with `select * from cron.job_run_details order by start_time desc` and `net._http_response`.
+- Backups: `.github/workflows/keep-alive.yml` runs the same ping, but GitHub schedules start late and can be skipped. The repo variable `BACKEND_URL` overrides the Render URL. `scripts/keep_alive.py` does a single ping, for other schedulers.
 - The frontend's `hooks/useServerWarmup.js` probes `/wake` and shows `WarmupBanner` while the server is cold.
 
 ### CORS
