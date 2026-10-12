@@ -1,35 +1,57 @@
 import { useEffect, useState } from "react";
 import { getMoodHeatmap } from "../services/moodService";
+import { CATEGORY_CONFIG, getCategoryConfig } from "../constants/categories";
+import { lastNDates, parseLocalDate } from "../lib/dates";
+import { getErrorMessage } from "../lib/errors";
 
-const MOOD_COLORS = {
-  Normal: "bg-sage-400",
-  Stress: "bg-amber-400",
-  Anxiety: "bg-orange-400",
-  Bipolar: "bg-indigo-400",
-  Depression: "bg-rose-400",
-  Suicidal: "bg-rose-600",
-  "Personality Disorder": "bg-violet-400",
-};
+const LEGEND = Object.entries(CATEGORY_CONFIG).map(([cat, cfg]) => [cat, cfg.swatch]);
 
 export default function MoodHeatmapPage() {
   const [data, setData] = useState({ days: [], feedback: "" });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    setReloadKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    getMoodHeatmap().then(setData).finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    getMoodHeatmap()
+      .then((res) => {
+        if (!cancelled) setData({ days: res?.days ?? [], feedback: res?.feedback ?? "" });
+      })
+      .catch((err) => {
+        console.error("Failed to load mood heatmap:", err);
+        if (!cancelled) setError(getErrorMessage(err, "We couldn't load your mood heatmap."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
-  if (loading) return <div className="text-center py-10">Loading heatmap...</div>;
+  if (loading) return <div className="text-center py-10" role="status">Loading heatmap...</div>;
 
-  // Generate 30 days grid (empty slots where no data)
-  const today = new Date();
-  const grid = Array.from({ length: 30 }).map((_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (29 - i));
-    const dateStr = d.toISOString().split("T")[0];
-    const log = data.days.find(x => x.logged_date === dateStr);
-    return { date: dateStr, log };
-  });
+  if (error) {
+    return (
+      <div className="max-w-md mx-auto text-center py-10 space-y-4" role="alert">
+        <p className="text-rose-700 font-medium">{error}</p>
+        <button type="button" onClick={handleRetry} className="medical-btn medical-btn-secondary px-5 py-2 text-sm">
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  // 30-day grid keyed by the user's LOCAL calendar date (not UTC).
+  const byDate = new Map(data.days.map((x) => [x.logged_date, x]));
+  const grid = lastNDates(30).map((date) => ({ date, log: byDate.get(date) }));
 
   return (
     <div className="space-y-6 animate-medical-fade-in relative">
@@ -54,23 +76,25 @@ export default function MoodHeatmapPage() {
           </h3>
 
           <div className="grid grid-cols-7 gap-1.5 sm:gap-3 mb-6 sm:mb-10 relative z-10">
-            {grid.map((cell, i) => (
+            {grid.map((cell) => (
               <div
                 key={cell.date}
-                className={`aspect-square rounded-2xl flex items-center justify-center relative group transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:z-20 border cursor-pointer
-                  ${cell.log ? MOOD_COLORS[cell.log.category] || "bg-sage-400 border-white/20" : "bg-white/40 border-sage-200/40 backdrop-blur-sm"}
+                className={`aspect-square rounded-2xl flex items-center justify-center relative group transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:z-20 border cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-sage-500
+                  ${cell.log ? `${getCategoryConfig(cell.log.category).swatch} border-white/20` : "bg-white/40 border-sage-200/40 backdrop-blur-sm"}
                 `}
                 style={cell.log ? { boxShadow: "inset 0 2px 4px rgba(255,255,255,0.2)" } : {}}
+                tabIndex={0}
+                aria-label={`${parseLocalDate(cell.date).toLocaleDateString(undefined, { month: "long", day: "numeric" })}: ${cell.log ? cell.log.category : "no data logged"}`}
               >
                 {cell.log && <div className="hidden md:block w-2.5 h-2.5 rounded-full bg-white opacity-40 shadow-sm" />}
                 
                 {/* Modern Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-max px-4 py-2 bg-warm-800/90 backdrop-blur-sm text-white text-xs font-medium rounded-xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none transition-all duration-200 z-30 shadow-medical-lg border border-warm-700/50 flex flex-col items-center">
-                  <span className="text-warm-300 mb-1">{new Date(cell.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}</span>
+                <div aria-hidden="true" className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-max px-4 py-2 bg-warm-800/90 backdrop-blur-sm text-white text-xs font-medium rounded-xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 group-focus:opacity-100 group-focus:translate-y-0 pointer-events-none transition-all duration-200 z-30 shadow-medical-lg border border-warm-700/50 flex flex-col items-center">
+                  <span className="text-warm-300 mb-1">{parseLocalDate(cell.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}</span>
                   <span className="font-bold flex items-center gap-1.5">
                     {cell.log ? (
                       <>
-                        <span className={`w-2 h-2 rounded-full ${MOOD_COLORS[cell.log.category]}`}></span>
+                        <span className={`w-2 h-2 rounded-full ${getCategoryConfig(cell.log.category).swatch}`}></span>
                         {cell.log.category}
                       </>
                     ) : "No Data Logged"}
@@ -82,7 +106,7 @@ export default function MoodHeatmapPage() {
 
           {/* Legend */}
           <div className="flex flex-wrap gap-x-6 gap-y-3 pt-6 border-t border-sage-100/50">
-            {Object.entries(MOOD_COLORS).map(([cat, bg]) => (
+            {LEGEND.map(([cat, bg]) => (
               <div key={cat} className="flex items-center gap-2 text-sm font-medium text-warm-600 transition-colors hover:text-warm-800 cursor-default">
                 <span className={`w-3.5 h-3.5 rounded-md ${bg} shadow-sm border border-white/40`} /> 
                 {cat}

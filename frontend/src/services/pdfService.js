@@ -1,6 +1,3 @@
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-
 /**
  * Exports a DOM element as a PDF.
  * @param {string} elementId - ID of the element to capture
@@ -9,6 +6,12 @@ import html2canvas from "html2canvas";
 export async function exportElementToPDF(elementId, filename = "sentimind-report") {
   const element = document.getElementById(elementId);
   if (!element) throw new Error(`Element #${elementId} not found`);
+
+  // Loaded on demand so the PDF libraries are not part of the initial bundle.
+  const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+    import("jspdf"),
+    import("html2canvas"),
+  ]);
 
   const canvas = await html2canvas(element, {
     scale: 2,

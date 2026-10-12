@@ -1,9 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
+import PageLoader from "../components/PageLoader";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import SentiBotFAB from "../components/SentiBotFAB";
 import WarmupBanner from "../components/WarmupBanner";
 import { useServerWarmup } from "../hooks/useServerWarmup";
+import { useDoubleEscape, quickExit } from "../hooks/useQuickHide";
+
+const QUICK_EXIT_HINT = "Leave this site immediately. Shortcut: press Esc twice.";
+
+const QuickExitIcon = () => (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>
+  </svg>
+);
 
 const NAV_LINKS = [
   {
@@ -82,20 +92,17 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isCold, isWarm, elapsedSeconds } = useServerWarmup();
 
-  // Emergency Quick Hide
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") window.location.replace("https://www.google.com");
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  // Emergency quick exit: deliberate double-Escape. Escape presses consumed by
+  // dialogs (which call preventDefault) are ignored.
+  useDoubleEscape(quickExit);
 
   // Close sidebar when navigating
   const location = useLocation();
-  useEffect(() => {
+  const [lastPath, setLastPath] = useState(location.pathname);
+  if (lastPath !== location.pathname) {
+    setLastPath(location.pathname);
     setSidebarOpen(false);
-  }, [location.pathname]);
+  }
 
   const handleLogout = async () => {
     await signOut();
@@ -151,13 +158,15 @@ export default function DashboardLayout() {
         {/* Footer buttons */}
         <div className="p-3 border-t border-sage-100/60 space-y-1.5">
           <button
-            onClick={() => window.location.replace("https://www.google.com")}
+            type="button"
+            onClick={quickExit}
+            title={QUICK_EXIT_HINT}
+            aria-label="Quick exit: leave this site now (shortcut: press Escape twice)"
             className="flex items-center justify-center gap-2 w-full px-3 py-2.5 text-sm font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all border border-rose-200/60"
           >
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>
-            </svg>
-            Quick Hide (Esc)
+            <QuickExitIcon />
+            Quick exit
+            <kbd className="ml-1 text-[10px] font-medium text-rose-500 bg-white/70 border border-rose-200 rounded px-1">Esc ×2</kbd>
           </button>
           <button
             onClick={handleLogout}
@@ -193,7 +202,7 @@ export default function DashboardLayout() {
                     Senti<span className="text-sage-600">Mind</span>
                   </span>
                 </div>
-                <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-lg text-warm-500 hover:bg-sage-50">
+                <button onClick={() => setSidebarOpen(false)} aria-label="Close menu" className="p-2 rounded-lg text-warm-500 hover:bg-sage-50">
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
@@ -226,10 +235,13 @@ export default function DashboardLayout() {
 
             <div className="p-4 border-t border-sage-100 space-y-2">
               <button
-                onClick={() => window.location.replace("https://www.google.com")}
+                type="button"
+                onClick={quickExit}
+                title={QUICK_EXIT_HINT}
                 className="flex items-center justify-center gap-2 w-full px-3 py-3 text-sm font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200"
               >
-                Quick Hide (Esc)
+                <QuickExitIcon />
+                Quick exit
               </button>
               <button
                 onClick={handleLogout}
@@ -257,6 +269,17 @@ export default function DashboardLayout() {
               Senti<span className="text-sage-600">Mind</span>
             </span>
           </div>
+          <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={quickExit}
+            title={QUICK_EXIT_HINT}
+            aria-label="Quick exit: leave this site now"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200/60"
+          >
+            <QuickExitIcon />
+            Exit
+          </button>
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
@@ -266,6 +289,7 @@ export default function DashboardLayout() {
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
+          </div>
         </header>
 
         {/* Cold-start warm-up banner */}
@@ -274,7 +298,9 @@ export default function DashboardLayout() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto scroll-smooth">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-28 md:pb-8 md:py-8">
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
 
@@ -311,6 +337,7 @@ export default function DashboardLayout() {
           {/* More button triggers drawer */}
           <button
             onClick={() => setSidebarOpen(true)}
+            aria-label="More navigation options"
             className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 px-1 text-[10px] font-semibold tracking-wide text-warm-400 hover:text-sage-600 transition-colors"
           >
             <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

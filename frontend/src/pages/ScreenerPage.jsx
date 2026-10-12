@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { submitScreener, getScreenerHistory } from "../services/screenerService";
+import { submitScreener } from "../services/screenerService";
+import { getErrorMessage } from "../lib/errors";
 
 const GAD2_QUESTIONS = [
   "Over the last 2 weeks, how often have you been bothered by feeling nervous, anxious, or on edge?",
@@ -24,33 +25,49 @@ export default function ScreenerPage() {
   const [phq2Answers, setPhq2Answers] = useState([null, null]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const handleNext = () => setStep(step === "gad2" ? "phq2" : "result");
+
+  // Leaving or retaking the screener must not carry over previous answers/results.
+  const resetScreener = () => {
+    setGad2Answers([null, null]);
+    setPhq2Answers([null, null]);
+    setResult(null);
+    setSubmitError(null);
+    setStep("start");
+  };
   const isGad2Complete = gad2Answers[0] !== null && gad2Answers[1] !== null;
   const isPhq2Complete = phq2Answers[0] !== null && phq2Answers[1] !== null;
 
   const handleSubmit = async () => {
     setLoading(true);
+    setSubmitError(null);
     try {
       const res = await submitScreener(gad2Answers, phq2Answers);
       setResult(res);
       setStep("result");
+    } catch (err) {
+      console.error("Screener submission failed:", err);
+      setSubmitError(getErrorMessage(err, "We couldn't submit your answers. Please try again."));
     } finally {
       setLoading(false);
     }
   };
 
-  const renderQuestions = (questions, answers, setAnswers) => (
+  const renderQuestions = (questions, answers, setAnswers, prefix) => (
     <div className="space-y-8 animate-medical-slide-up relative z-10">
       {questions.map((q, idx) => (
         <div key={idx} className="bg-white/70 backdrop-blur-xl border border-sage-200/60 shadow-sm p-8 rounded-3xl relative overflow-hidden group">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-sage-200/20 rounded-full blur-3xl transition-all duration-500 group-hover:bg-sage-300/30"></div>
           
-          <p className="text-warm-800 font-medium mb-6 text-lg tracking-tight relative z-10">{q}</p>
-          <div className="flex flex-col sm:flex-row gap-3 relative z-10">
+          <p id={`${prefix}-q${idx}`} className="text-warm-800 font-medium mb-6 text-lg tracking-tight relative z-10">{q}</p>
+          <div className="flex flex-col sm:flex-row gap-3 relative z-10" role="group" aria-labelledby={`${prefix}-q${idx}`}>
             {OPTIONS.map(opt => (
               <button
                 key={opt.value}
+                type="button"
+                aria-pressed={answers[idx] === opt.value}
                 onClick={() => {
                   const newAnswers = [...answers];
                   newAnswers[idx] = opt.value;
@@ -112,7 +129,7 @@ export default function ScreenerPage() {
             </h2>
             <span className="text-xs font-bold uppercase tracking-widest bg-sage-100 text-sage-700 px-3 py-1.5 rounded-lg border border-sage-200/50">Progress: 50%</span>
           </div>
-          {renderQuestions(GAD2_QUESTIONS, gad2Answers, setGad2Answers)}
+          {renderQuestions(GAD2_QUESTIONS, gad2Answers, setGad2Answers, "gad2")}
           <div className="flex justify-end pt-6">
             <button onClick={handleNext} disabled={!isGad2Complete} className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-sage-700 hover:bg-sage-800 text-white font-semibold rounded-2xl shadow-md transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed">
               Continue to Part 2 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -130,7 +147,12 @@ export default function ScreenerPage() {
             </h2>
             <span className="text-xs font-bold uppercase tracking-widest bg-sage-200 text-sage-800 px-3 py-1.5 rounded-lg border border-sage-300/50">Progress: 100%</span>
           </div>
-          {renderQuestions(PHQ2_QUESTIONS, phq2Answers, setPhq2Answers)}
+          {renderQuestions(PHQ2_QUESTIONS, phq2Answers, setPhq2Answers, "phq2")}
+          {submitError && (
+            <div className="p-4 bg-rose-50 text-rose-700 rounded-xl border border-rose-200 text-sm" role="alert">
+              {submitError}
+            </div>
+          )}
           <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 pt-6">
             <button onClick={() => setStep("gad2")} className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-warm-600 border border-sage-200 font-semibold rounded-2xl shadow-sm transition-all duration-300 hover:bg-sage-50 hover:text-sage-800 hover:scale-[1.02]">
               <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back
@@ -190,7 +212,7 @@ export default function ScreenerPage() {
           </div>
 
           <div className="flex justify-center pt-4">
-             <button onClick={() => setStep("start")} className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-warm-700 border border-sage-200 font-bold tracking-wide rounded-2xl shadow-sm transition-all duration-300 hover:bg-sage-50 hover:scale-105">
+             <button type="button" onClick={resetScreener} className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-warm-700 border border-sage-200 font-bold tracking-wide rounded-2xl shadow-sm transition-all duration-300 hover:bg-sage-50 hover:scale-105">
                Exit Screener
              </button>
           </div>

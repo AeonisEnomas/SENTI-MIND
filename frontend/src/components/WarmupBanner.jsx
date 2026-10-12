@@ -12,25 +12,22 @@ import { useEffect, useState } from "react";
  *   elapsedSeconds {number} — seconds since cold start was detected
  */
 export default function WarmupBanner({ isCold, isWarm, elapsedSeconds }) {
-  const [visible, setVisible] = useState(false);
-  const [justWarm, setJustWarm] = useState(false);
+  const [wasCold, setWasCold] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
-  // Appear when cold
-  useEffect(() => {
-    if (isCold) setVisible(true);
-  }, [isCold]);
+  // Appear once the server is detected as cold (state adjusted during render,
+  // which React handles without an extra effect pass).
+  if (isCold && !wasCold) setWasCold(true);
+
+  const visible = wasCold && !dismissed;
+  const justWarm = visible && isWarm;
 
   // Flash "ready" then disappear
   useEffect(() => {
-    if (isWarm && visible) {
-      setJustWarm(true);
-      const t = setTimeout(() => {
-        setVisible(false);
-        setJustWarm(false);
-      }, 2500);
-      return () => clearTimeout(t);
-    }
-  }, [isWarm, visible]);
+    if (!justWarm) return undefined;
+    const t = setTimeout(() => setDismissed(true), 2500);
+    return () => clearTimeout(t);
+  }, [justWarm]);
 
   if (!visible) return null;
 

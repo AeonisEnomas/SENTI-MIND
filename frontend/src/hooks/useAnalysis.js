@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { analyzeText } from "../services/analysisService";
+import { getErrorMessage } from "../lib/errors";
 
 export function useAnalysis() {
   const [result, setResult] = useState(null);
@@ -14,7 +15,7 @@ export function useAnalysis() {
       setResult(data);
       return data;           // ← callers need this to log mood & save entry
     } catch (err) {
-      setError(err?.response?.data?.detail ?? "An unexpected error occurred.");
+      setError(getErrorMessage(err, "We couldn't analyze your entry right now. Please try again."));
       return null;
     } finally {
       setLoading(false);

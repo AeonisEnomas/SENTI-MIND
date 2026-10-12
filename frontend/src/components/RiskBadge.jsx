@@ -1,11 +1,11 @@
 import { 
   Shield, 
-  AlertCircle, 
   AlertTriangle, 
   TrendingUp,
   Heart,
   Activity
 } from "lucide-react";
+import { PRIMARY_CRISIS_RESOURCE, telHref } from "../constants/crisisResources";
 
 // Medical-grade risk levels - AHCI compliant color system
 const LEVEL_CONFIG = {
@@ -89,7 +89,7 @@ export default function RiskBadge({
             <div>
               <p className="medical-label text-xs mb-0.5">Risk Assessment</p>
               <p className={`text-lg font-bold ${config.text}`}>
-                {safety_protocol ? "Safety Protocol Activated" : config.label}
+                {safety_protocol ? "Extra Support Recommended" : config.label}
               </p>
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function RiskBadge({
         {/* Description */}
         <p className="text-sm text-warm-600 leading-relaxed mb-5">
           {safety_protocol 
-            ? "Crisis indicators detected. Please reach out to support resources immediately." 
+            ? "It sounds like you're having a really hard time. You deserve support, and reaching out can help."
             : config.description}
         </p>
 
@@ -194,17 +194,17 @@ export default function RiskBadge({
               <Heart className="w-5 h-5 text-medical-emergency flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-medical-emergency">
-                  High Risk Detected
+                  Support is available right now
                 </p>
                 <p className="text-sm text-warm-700 mt-1 leading-relaxed">
-                  This analysis indicates significant distress. Please consider reaching 
-                  out to a mental health professional or crisis support service immediately.
+                  It sounds like you're going through a lot. Talking to someone can help,
+                  and free, confidential support is available any time.
                 </p>
-                <a 
-                  href="tel:04235765951" 
+                <a
+                  href={telHref(PRIMARY_CRISIS_RESOURCE.phone)}
                   className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-medical-emergency text-white rounded-lg text-sm font-medium hover:bg-medical-emergency/90 transition-colors"
                 >
-                  <span>📞</span> Call Umang Now
+                  <span aria-hidden="true">📞</span> Call {PRIMARY_CRISIS_RESOURCE.shortName} ({PRIMARY_CRISIS_RESOURCE.phone})
                 </a>
               </div>
             </div>

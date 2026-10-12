@@ -1,22 +1,66 @@
 import { useEffect, useState } from "react";
 import { listGratitude, deleteGratitude } from "../services/journalService";
+import { getErrorMessage } from "../lib/errors";
 
 export default function GratitudeJarPage() {
   const [snippets, setSnippets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    load();
-  }, []);
+    let cancelled = false;
+    listGratitude()
+      .then((data) => {
+        if (!cancelled) setSnippets(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Failed to load gratitude jar:", err);
+        if (!cancelled) setLoadError(getErrorMessage(err, "We couldn't open your gratitude jar."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
-  const load = () => listGratitude().then(setSnippets).finally(() => setLoading(false));
-
-  const handleDelete = async (id) => {
-    await deleteGratitude(id);
-    load();
+  const handleRetry = () => {
+    setLoading(true);
+    setLoadError(null);
+    setReloadKey((k) => k + 1);
   };
 
-  if (loading) return <div className="text-center py-10">Loading jar...</div>;
+  const handleDelete = async (id) => {
+    setActionError(null);
+    setDeletingId(id);
+    try {
+      await deleteGratitude(id);
+      setSnippets((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      console.error("Failed to delete gratitude snippet:", err);
+      setActionError(getErrorMessage(err, "We couldn't remove that note. Please try again."));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading) return <div className="text-center py-10" role="status">Loading jar...</div>;
+
+  if (loadError) {
+    return (
+      <div className="max-w-md mx-auto text-center py-10 space-y-4" role="alert">
+        <p className="text-rose-700 font-medium">{loadError}</p>
+        <button type="button" onClick={handleRetry} className="medical-btn medical-btn-secondary px-5 py-2 text-sm">
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-medical-fade-in">
@@ -29,6 +73,12 @@ export default function GratitudeJarPage() {
           A collection of your highest energy positive moments. Reflect and recharge.
         </p>
       </div>
+
+      {actionError && (
+        <div className="p-4 bg-rose-50 text-rose-700 rounded-xl border border-rose-200 text-sm" role="alert">
+          {actionError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {snippets.length === 0 ? (
@@ -57,12 +107,15 @@ export default function GratitudeJarPage() {
                    {new Date(snip.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
                 </span>
                 
-                <button 
-                  onClick={() => handleDelete(snip.id)} 
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 text-rose-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-100 border border-rose-100 shadow-sm"
-                  title="Wipe indicator"
+                <button
+                  type="button"
+                  onClick={() => handleDelete(snip.id)}
+                  disabled={deletingId === snip.id}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 text-rose-500 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50 transition-all hover:bg-rose-100 border border-rose-100 shadow-sm"
+                  title="Remove from jar"
+                  aria-label="Remove this note from the gratitude jar"
                 >
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  <svg aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               </div>
             </div>
