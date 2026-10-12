@@ -1,12 +1,7 @@
 import logging
-import os
-import google.generativeai as genai
-from app.core.config import settings
+from app.services import openrouter
 
 logger = logging.getLogger(__name__)
-
-# Initialize Gemini
-genai.configure(api_key=settings.GEMINI_API_KEY if hasattr(settings, "GEMINI_API_KEY") else os.getenv("GEMINI_API_KEY"))
 
 # Agent Service
 
@@ -44,26 +39,21 @@ class AgentService:
             "- Structure your response beautifully using Markdown headers, bullet points, and bold text for readability.\n"
             "- DO NOT output your internal therapeutic analysis, scratchpad, or drafting steps. Provide ONLY the final conversational response directly to the user."
         )
-        
-        self.model = genai.GenerativeModel(
-            model_name="gemini-3.1-flash-lite-preview",
-            system_instruction=self.system_instruction
-        )
 
     async def chat(self, user_id: str, message: str, history: list = None) -> str:
-        if not history:
-            history = []
-            
+        # History arrives in Gemini shape ({"role": "user"|"model", "parts": [...]});
+        # convert it to OpenAI-style messages for OpenRouter.
+        messages = [{"role": "system", "content": self.system_instruction}]
+        for turn in history or []:
+            role = "assistant" if turn.get("role") == "model" else "user"
+            messages.append({"role": role, "content": "\n".join(turn.get("parts", []))})
+        messages.append({"role": "user", "content": message})
+
         try:
-            # Start a chat session with the provided history
-            chat = self.model.start_chat(history=history)
-            
-            # Send the user's message directly. No tool calling needed.
-            response = chat.send_message(message)
-            
-            return response.text
+            text, _ = await openrouter.chat_completion(messages)
+            return text
         except Exception as e:
-            logger.exception("Gemini chat failed for user %s: %s", user_id, e)
+            logger.exception("OpenRouter chat failed for user %s: %s", user_id, e)
             return (
                 "I'm sorry, I'm having a bit of trouble connecting right now. "
                 "Please try again in a moment. If you're in crisis, please reach out to "

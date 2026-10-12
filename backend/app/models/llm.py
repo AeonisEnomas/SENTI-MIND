@@ -1,14 +1,8 @@
 import logging
-import os
-import google.generativeai as genai
-from google.generativeai.types import generation_types
 
-from app.core.config import settings
+from app.services import openrouter
 
 logger = logging.getLogger(__name__)
-
-# Initialize Gemini
-genai.configure(api_key=settings.GEMINI_API_KEY if hasattr(settings, "GEMINI_API_KEY") else os.getenv("GEMINI_API_KEY"))
 
 def _build_prompt(text: str, emotions: list, clinical: dict, risk: dict) -> str:
     top_emotions = ", ".join(f"{e['label']} ({e['score']:.0%})" for e in emotions[:3])  # type: ignore
@@ -50,27 +44,15 @@ Keep the tone warm, empathetic, non-judgmental, and highly professional. Do not 
 
 
 async def generate_insight(text: str, emotions: list, clinical: dict, risk: dict) -> tuple[str, dict | None]:
-    if not hasattr(settings, "GEMINI_API_KEY") and not os.getenv("GEMINI_API_KEY"):
-        logger.warning("GEMINI_API_KEY not set — using fallback insight.")
+    if not openrouter.is_configured():
+        logger.warning("OPENROUTER_API_KEY not set — using fallback insight.")
         return _fallback_insight(clinical), None
 
     try:
-        model = genai.GenerativeModel("gemini-3.1-flash-lite-preview")
         prompt = _build_prompt(text, emotions, clinical, risk)
-        
-        response = await model.generate_content_async(prompt)
-        
-        insight_text = response.text.strip()
-        
-        # Approximate usage info since Gemini API structure is different
-        usage = {
-            "prompt_tokens": response.usage_metadata.prompt_token_count if hasattr(response, "usage_metadata") else 0,
-            "completion_tokens": response.usage_metadata.candidates_token_count if hasattr(response, "usage_metadata") else 0,
-        }
-        return insight_text, {"model": "gemini-3.1-flash-lite-preview", "usage": usage}
-
+        return await openrouter.chat_completion([{"role": "user", "content": prompt}])
     except Exception as exc:
-        logger.exception("Gemini unexpected error: %s", exc)
+        logger.exception("OpenRouter insight generation failed: %s", exc)
         return _fallback_insight(clinical), None
 
 

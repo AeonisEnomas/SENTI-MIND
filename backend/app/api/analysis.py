@@ -85,7 +85,7 @@ async def analyze_text(
         if llm_details:
             models_used.append(
                 ModelUsed(
-                    name=llm_details.get("model", "xiaomi/mimo-v2-omni"),
+                    name=llm_details["model"],
                     type="llm",
                     provider="openrouter",
                     details=llm_details.get("usage", {})

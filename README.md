@@ -60,7 +60,7 @@
 ### AI/ML Components
 - **Emotion Detection**: HuggingFace Inference API (j-hartmann/emotion-english-distilroberta-base)
 - **Clinical Classifier**: Custom-trained LinearSVC with TF-IDF features
-- **LLM Insights**: OpenRouter API (xiaomi/mimo-v2-omni)
+- **LLM Insights & Chat Agent**: OpenRouter API (default `google/gemini-3.1-flash-lite-preview`, configurable via `OPENROUTER_MODEL`)
 - **NER (Named Entity Recognition)**: spaCy pipeline
 
 ### Database Schema
@@ -117,7 +117,8 @@ Access the fully functional app instantly without installation:
    - Rename `.env.example` to `.env`
    - Add your API keys:
      - `HF_API_TOKEN` - HuggingFace API token (for emotion detection)
-     - `OPENROUTER_API_KEY` - OpenRouter API key (for LLM insights)
+     - `OPENROUTER_API_KEY` - OpenRouter API key (for LLM insights and the chat agent)
+     - `OPENROUTER_MODEL` (optional) - any OpenRouter model id; defaults to `google/gemini-3.1-flash-lite-preview`
      - `SUPABASE_URL` - Supabase project URL
      - `SUPABASE_KEY` - Supabase service key
      - `SECRET_KEY` - JWT secret for authentication
