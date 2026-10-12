@@ -1,6 +1,6 @@
 {
   "model_version": "v5",
-  "trained_at": "2026-10-12T12:13:54+00:00",
+  "trained_at": "2026-10-12T12:21:33+00:00",
   "environment": {
     "python_version": "3.11.17",
     "sklearn_version": "1.8.0",
@@ -8,13 +8,13 @@
     "joblib_version": "1.6.0"
   },
   "git": {
-    "sha": "a7e7bb6b673fb46838de157802af271ce2bbcdb5",
+    "sha": "d7e64a8a84c355d8b3c34f3a1cfab54dbbd7a85a",
     "training_code_dirty": false
   },
   "sha256": {
     "training_csv": "066832844e9688c0955ffc9ea3491ee10833d33edbf0d87b76693c720a400263",
     "sentiment_model.joblib": "e522891718ad8b7472be7c6be353886650cd7e9056af3f1e2acf38ccfb0fc514",
-    "vectorizer.joblib": "f3ec1a902f68a0c12c565c4aed16721959dde1026bd95be8c6dbfbc19741f779"
+    "vectorizer.joblib": "6d2ec58e9a013d79cac83f35aa975492cf88159997774d5d83029b4616bffdfd"
   },
   "data": {
     "source": "synthetic, hand-written sentence pools in scripts/training_data/ (not clinical data)",
