@@ -4,6 +4,7 @@ import json
 
 import httpx
 import pytest
+import pytest_asyncio
 
 from app.core.config import settings
 from app.models import llm
@@ -20,8 +21,8 @@ class _Captured(list):
         self.handler = handler
 
 
-@pytest.fixture
-def mock_openrouter(monkeypatch):
+@pytest_asyncio.fixture
+async def mock_openrouter(monkeypatch):
     """Route OpenRouter HTTP calls to a handler; returns the captured requests."""
     captured = _Captured()
 
@@ -37,8 +38,12 @@ def mock_openrouter(monkeypatch):
         return real_client(*args, **kwargs)
 
     monkeypatch.setattr(openrouter.httpx, "AsyncClient", fake_client)
+    # Force the shared client to be (re)created through the patched constructor.
+    monkeypatch.setattr(openrouter, "_client", None)
+    monkeypatch.setattr(openrouter, "_client_loop", None)
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "test-key")
-    return captured
+    yield captured
+    await openrouter.aclose_client()
 
 
 def _ok(text, model="test/model"):
@@ -57,6 +62,15 @@ async def test_chat_completion_success(mock_openrouter):
     assert req["headers"]["authorization"] == "Bearer test-key"
     assert req["body"]["model"] == settings.OPENROUTER_MODEL
     assert req["body"]["max_tokens"] == settings.OPENROUTER_MAX_TOKENS
+
+
+async def test_chat_completion_reuses_shared_client(mock_openrouter):
+    await openrouter.chat_completion([{"role": "user", "content": "hi"}])
+    first = openrouter._client
+    await openrouter.chat_completion([{"role": "user", "content": "again"}])
+    assert openrouter._client is first and len(mock_openrouter) == 2
+    await openrouter.aclose_client()
+    assert openrouter._client is None and first.is_closed
 
 
 async def test_chat_completion_model_override(mock_openrouter):

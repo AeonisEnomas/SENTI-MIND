@@ -1,5 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException
+from starlette.concurrency import run_in_threadpool
 from app.models.schemas import (
     AnalysisRequest, AnalysisResponse,
     EmotionResult, ClinicalResult, ClinicalCategory,
@@ -12,13 +13,14 @@ from app.services.ner import extract_entities
 from app.services.risk_engine import assess_risk
 from app.services.preprocessor import clean_text
 from app.api.auth_middleware import get_current_user
+from app.api.rate_limit import analysis_rate_limit
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-@router.post("/", response_model=AnalysisResponse)
+@router.post("/", response_model=AnalysisResponse, dependencies=[Depends(analysis_rate_limit)])
 async def analyze_text(
     payload: AnalysisRequest,
     user_id: str = Depends(get_current_user),
@@ -36,7 +38,8 @@ async def analyze_text(
         emotions = [EmotionResult(label=e["label"], score=e["score"]) for e in raw_emotions]
 
         # Predict clinical category
-        raw_clinical = classifier.predict(cleaned_text)
+        # CPU-bound sklearn/spaCy calls run in the threadpool so they don't block the event loop.
+        raw_clinical = await run_in_threadpool(classifier.predict, cleaned_text)
         clinical = ClinicalResult(
             category=raw_clinical["category"],
             confidence=raw_clinical["confidence"],
@@ -50,7 +53,7 @@ async def analyze_text(
         )
 
         # Extract named entities
-        raw_entities = extract_entities(cleaned_text)
+        raw_entities = await run_in_threadpool(extract_entities, cleaned_text)
         entities = [
             EntityResult(text=e["text"], label=e["label"], start=e["start"], end=e["end"])
             for e in raw_entities

@@ -1,4 +1,5 @@
 
+import asyncio
 import logging
 
 import httpx
@@ -17,6 +18,28 @@ _FALLBACK = ({"label": "neutral", "score": 1.0},)
 
 # Keep all 7 model outputs (anger, disgust, fear, joy, neutral, sadness, surprise) without synthetic emotions
 
+# Shared client: reuses TLS connections across requests. Created lazily, closed in the app lifespan.
+_client: httpx.AsyncClient | None = None
+_client_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    global _client, _client_loop
+    loop = asyncio.get_running_loop()
+    # Recreate if closed or bound to a different event loop (e.g. tests that spin up new loops).
+    if _client is None or _client.is_closed or _client_loop is not loop:
+        _client = httpx.AsyncClient(timeout=HF_TIMEOUT)
+        _client_loop = loop
+    return _client
+
+
+async def aclose_client() -> None:
+    global _client, _client_loop
+    if _client is not None and not _client.is_closed:
+        await _client.aclose()
+    _client = None
+    _client_loop = None
+
 
 async def detect_emotions(text: str) -> list[dict]:
     if not isinstance(text, str) or not text.strip():
@@ -29,8 +52,7 @@ async def detect_emotions(text: str) -> list[dict]:
     headers = {"Authorization": f"Bearer {settings.HF_API_TOKEN}"}
 
     try:
-        async with httpx.AsyncClient(timeout=HF_TIMEOUT) as client:
-            response = await client.post(HF_API_URL, headers=headers, json={"inputs": text})
+        response = await _get_client().post(HF_API_URL, headers=headers, json={"inputs": text})
 
         if response.status_code != 200:
             logger.warning("HF API returned %s: %s", response.status_code, response.text[:200])

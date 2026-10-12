@@ -1,5 +1,6 @@
 
 import logging
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from supabase import Client
@@ -9,10 +10,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Routes here are plain `def`: supabase-py is synchronous, and FastAPI runs sync
+# routes in its threadpool so the blocking `.execute()` calls don't stall the event loop.
+
+# GAD-2 / PHQ-2 items are scored 0 ("not at all") .. 3 ("nearly every day"); each has exactly 2 items.
+Answer = Annotated[int, Field(strict=True, ge=0, le=3)]
+
 
 class ScreenerSubmit(BaseModel):
-    gad2_answers: list[int] = Field(..., min_length=2, max_length=2)
-    phq2_answers: list[int] = Field(..., min_length=2, max_length=2)
+    gad2_answers: list[Answer] = Field(..., min_length=2, max_length=2)
+    phq2_answers: list[Answer] = Field(..., min_length=2, max_length=2)
 
 
 def _interpret_gad2(score: int) -> str:
@@ -28,7 +35,7 @@ def _interpret_phq2(score: int) -> str:
 
 
 @router.post("/", status_code=201)
-async def submit_screener(
+def submit_screener(
     payload: ScreenerSubmit,
     user_id: str = Depends(get_current_user),
     sb: Client = Depends(get_authenticated_client),
@@ -54,13 +61,13 @@ async def submit_screener(
             "gad2_interpretation": _interpret_gad2(gad2),
             "phq2_interpretation": _interpret_phq2(phq2),
         }
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to submit screener for user %s", user_id)
         raise HTTPException(status_code=500, detail="Failed to save screener results.")
 
 
 @router.get("/history")
-async def screener_history(
+def screener_history(
     user_id: str = Depends(get_current_user),
     sb: Client = Depends(get_authenticated_client),
 ):
@@ -81,6 +88,6 @@ async def screener_history(
             }
             for row in result.data
         ]
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to get screener history for user %s", user_id)
         raise HTTPException(status_code=500, detail="Failed to retrieve screener history.")

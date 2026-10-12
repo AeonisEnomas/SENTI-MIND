@@ -1,9 +1,18 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Literal, Optional
+
+from app.core.constants import MENTAL_HEALTH_CATEGORIES
+
+# Every category the classifier can emit: the trained labels plus its low-confidence/edge-case labels.
+CATEGORY_VALUES = tuple(MENTAL_HEALTH_CATEGORIES) + ("Uncertain", "Insufficient", "Unknown")
+Category = Literal[CATEGORY_VALUES]  # type: ignore[valid-type]
+RiskLevel = Literal["low", "medium", "high", "critical"]
+
+MAX_ANALYSIS_TEXT_CHARS = 5000
 
 
 class AnalysisRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=5000)
+    text: str = Field(..., min_length=1, max_length=MAX_ANALYSIS_TEXT_CHARS)
 
 
 class EmotionResult(BaseModel):

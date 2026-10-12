@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import httpx
@@ -12,6 +13,29 @@ OPENROUTER_TIMEOUT = 60.0
 
 class OpenRouterError(RuntimeError):
     pass
+
+
+# Shared client: reuses TLS connections across requests. Created lazily, closed in the app lifespan.
+_client: httpx.AsyncClient | None = None
+_client_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    global _client, _client_loop
+    loop = asyncio.get_running_loop()
+    # Recreate if closed or bound to a different event loop (e.g. tests that spin up new loops).
+    if _client is None or _client.is_closed or _client_loop is not loop:
+        _client = httpx.AsyncClient(timeout=OPENROUTER_TIMEOUT)
+        _client_loop = loop
+    return _client
+
+
+async def aclose_client() -> None:
+    global _client, _client_loop
+    if _client is not None and not _client.is_closed:
+        await _client.aclose()
+    _client = None
+    _client_loop = None
 
 
 def is_configured() -> bool:
@@ -37,8 +61,7 @@ async def chat_completion(
         "max_tokens": max_tokens or settings.OPENROUTER_MAX_TOKENS,
     }
 
-    async with httpx.AsyncClient(timeout=OPENROUTER_TIMEOUT) as client:
-        response = await client.post(OPENROUTER_URL, headers=headers, json=body)
+    response = await _get_client().post(OPENROUTER_URL, headers=headers, json=body)
 
     if response.status_code != 200:
         raise OpenRouterError(f"OpenRouter returned {response.status_code}: {response.text[:300]}")

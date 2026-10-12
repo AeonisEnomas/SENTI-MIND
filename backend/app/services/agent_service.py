@@ -43,8 +43,18 @@ class AgentService:
     async def chat(self, user_id: str, message: str, history: list = None) -> str:
         # History arrives in Gemini shape ({"role": "user"|"model", "parts": [...]});
         # convert it to OpenAI-style messages for OpenRouter.
+        history = list(history or [])
+        # Defensive: some clients append the current message to history before sending it.
+        # Drop that trailing duplicate so the model doesn't see the same user turn twice.
+        if (
+            history
+            and history[-1].get("role") == "user"
+            and "\n".join(history[-1].get("parts", [])).strip() == message.strip()
+        ):
+            history.pop()
+
         messages = [{"role": "system", "content": self.system_instruction}]
-        for turn in history or []:
+        for turn in history:
             role = "assistant" if turn.get("role") == "model" else "user"
             messages.append({"role": role, "content": "\n".join(turn.get("parts", []))})
         messages.append({"role": "user", "content": message})

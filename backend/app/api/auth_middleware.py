@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from starlette.concurrency import run_in_threadpool
 from supabase import create_client, Client, ClientOptions
 
 from app.core.config import settings
@@ -31,7 +32,8 @@ async def _verify_token(
         return None
 
     try:
-        user_response = _supabase.auth.get_user(creds.credentials)
+        # supabase-py is synchronous: run the network call off the event loop.
+        user_response = await run_in_threadpool(_supabase.auth.get_user, creds.credentials)
         if hasattr(user_response, "user") and user_response.user:
             return AuthenticatedUser(
                 user_id=user_response.user.id,
@@ -74,7 +76,8 @@ async def get_authenticated_client(
             detail="Authentication required.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return create_client(
+    return await run_in_threadpool(
+        create_client,
         settings.SUPABASE_URL,
         settings.SUPABASE_ANON_KEY,
         options=ClientOptions(headers={"Authorization": f"Bearer {auth.token}"}),
