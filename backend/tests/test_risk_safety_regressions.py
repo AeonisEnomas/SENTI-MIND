@@ -39,6 +39,7 @@ def test_bug2_past_tense_elsewhere_does_not_scale_present_keyword():
     r = assess_risk("I was diagnosed years ago and now I'm suicidal again", NEUTRAL, clinical("Normal", 0.03))
     assert r["level"] in ("high", "critical")
     assert r["triggers"] == ["suicidal"]
+    assert r["safety_protocol"] is True
 
 
 @pytest.mark.parametrize("text", [
@@ -50,6 +51,7 @@ def test_bug2_comma_or_dont_know_why_is_not_negation(text):
     r = assess_risk(text, NEUTRAL, clinical("Depression", 0.29))
     assert r["level"] in ("high", "critical")
     assert "want to die" in r["triggers"]
+    assert r["safety_protocol"] is True
     assert not has_negated_crisis(text)
 
 
@@ -80,6 +82,7 @@ def test_bug4_curly_apostrophes_match(text):
     r = assess_risk(text, NEUTRAL, clinical("Normal", 0.02))
     assert r["triggers"], text
     assert r["level"] in ("high", "critical")
+    assert r["safety_protocol"] is True
 
 
 # ── Return-shape contract (API / frontend depend on it) ────────────────
@@ -105,12 +108,13 @@ def test_classifier_alone_still_triggers_protocol():
 def test_weak_keyword_is_never_low():
     r = assess_risk("I feel hopeless about my exams", NEUTRAL, clinical("Stress", 0.0))
     assert r["level"] == "medium"
-    assert r["safety_protocol"] is False
+    assert r["safety_protocol"] is False  # weak keywords (< 0.7) do not set the protocol
 
 
-def test_tier2_keyword_is_at_least_high():
-    r = assess_risk("I am suicidal", NEUTRAL, clinical("Normal", 0.0))
+def test_tier2_keyword_is_at_least_high_with_protocol():
+    r = assess_risk("I am suicidal right now", NEUTRAL, clinical("Normal", 0.0))
     assert r["level"] in ("high", "critical")
+    assert r["safety_protocol"] is True
 
 
 def test_critical_level_always_sets_protocol():
@@ -135,19 +139,19 @@ POSITIVES = [
     ("I took an overdose", "critical", True),
     ("I have no reason to live", "critical", True),
     ("I'm thinking about hanging myself", "critical", True),
-    ("I used to want to die, and I still do", "high", False),
-    ("I was suicidal years ago and I'm suicidal again now", "high", False),
-    ("I felt suicidal last night", "high", False),
-    ("I am suicidal right now", "high", False),
-    ("No, I want to die", "high", False),
-    ("Honestly I want to die", "high", False),
-    ("Not gonna lie I want to die", "high", False),
-    ("I wanted to die yesterday", "high", False),
-    ("I can't go on like this", "high", False),
-    ("I'm better off dead", "high", False),
-    ("life is not worth living", "high", False),
-    ("I don't want to be alive", "high", False),
-    ("I DON'T WANT TO LIVE", "high", False),
+    ("I used to want to die, and I still do", "high", True),
+    ("I was suicidal years ago and I'm suicidal again now", "high", True),
+    ("I felt suicidal last night", "high", True),
+    ("I am suicidal right now", "high", True),
+    ("No, I want to die", "high", True),
+    ("Honestly I want to die", "high", True),
+    ("Not gonna lie I want to die", "high", True),
+    ("I wanted to die yesterday", "high", True),
+    ("I can't go on like this", "high", True),
+    ("I'm better off dead", "high", True),
+    ("life is not worth living", "high", True),
+    ("I don't want to be alive", "high", True),
+    ("I DON'T WANT TO LIVE", "high", True),
     ("I feel worthless", "medium", False),
 ]
 
@@ -184,8 +188,8 @@ def test_positive_phrases(text, min_level, protocol):
     r = assess_risk(text, NEUTRAL, clinical("Normal", 0.02))
     assert LEVEL_ORDER.index(r["level"]) >= LEVEL_ORDER.index(min_level), r
     assert r["triggers"], r
-    if protocol:
-        assert r["safety_protocol"] is True, r
+    if protocol is not None:
+        assert r["safety_protocol"] is protocol, r
 
 
 @pytest.mark.parametrize("text,min_level,protocol", POSITIVES)
@@ -209,6 +213,7 @@ def test_mixed_negated_and_active_occurrences_report_active():
     r = assess_risk(text, NEUTRAL, clinical("Normal", 0.02))
     assert r["triggers"] == ["suicidal"]
     assert r["level"] in ("high", "critical")
+    assert r["safety_protocol"] is True
 
 
 def test_past_and_present_occurrences_in_one_text():

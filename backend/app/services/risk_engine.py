@@ -65,6 +65,9 @@ def assess_risk(text: str, emotions: list[dict], clinical: dict) -> dict:
     # Keyword floors: a present, non-negated crisis phrase can never be
     # out-voted by the classifier or the emotion model.
     tier1_hit = active_weight >= CRISIS_TIER1_MIN_WEIGHT
+    # Any active keyword at tier 2 or above sets the safety protocol:
+    # over-alerting is the preferred failure mode.
+    keyword_protocol = active_weight >= CRISIS_TIER2_MIN_WEIGHT
     if tier1_hit:
         risk_score = max(risk_score, RISK_THRESHOLDS["high"])
     elif active_weight >= CRISIS_TIER2_MIN_WEIGHT:
@@ -83,7 +86,9 @@ def assess_risk(text: str, emotions: list[dict], clinical: dict) -> dict:
     else:
         level = "low"
 
-    safety_protocol = suicidal_conf >= SAFETY_PROTOCOL_THRESHOLD or tier1_hit or level == "critical"
+    safety_protocol = (
+        suicidal_conf >= SAFETY_PROTOCOL_THRESHOLD or keyword_protocol or level == "critical"
+    )
 
     return {
         "level": level,

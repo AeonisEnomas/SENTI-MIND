@@ -70,7 +70,7 @@ CRISIS_KEYWORDS = {
 # A keyword hit that is not negated and not in the past sets a floor on the
 # risk level:
 #   weight >= CRISIS_TIER1_MIN_WEIGHT  -> "critical" + safety protocol
-#   weight >= CRISIS_TIER2_MIN_WEIGHT  -> at least "high"
+#   weight >= CRISIS_TIER2_MIN_WEIGHT  -> at least "high" + safety protocol
 #   any other crisis keyword           -> at least "medium" (never "low")
 CRISIS_TIER1_MIN_WEIGHT = 0.9
 CRISIS_TIER2_MIN_WEIGHT = 0.7
