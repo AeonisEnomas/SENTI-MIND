@@ -197,7 +197,7 @@ Open a **new** terminal window and run:
 - `GET /health` - API health status and CORS configuration
 - `GET /wake` - Lightweight keep-alive (no inference), used to warm up the Render free-tier instance
 
-Interactive API docs are served at `/docs` (disabled when `ENVIRONMENT=production`).
+Interactive API docs are served at `/docs` (disabled, along with `/redoc` and `/openapi.json`, when `ENVIRONMENT=production`). `/analysis/` and `/chat/` are rate-limited per user (`RATE_LIMIT_*` in `.env.example`).
 
 ---
 

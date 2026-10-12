@@ -274,8 +274,8 @@ A single `.env` at the **repo root** serves both halves (`vite.config.js` sets
 [`.env.example`](.env.example), which documents every variable:
 
 - Backend: `HF_API_TOKEN`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_MAX_TOKENS`,
-  `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `ALLOWED_ORIGINS`, `ENVIRONMENT`, optional
-  rate limits, `SENTIMIND_MODEL_PATH` / `SENTIMIND_VECTORIZER_PATH`.
+  `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `ALLOWED_ORIGINS`, `ENVIRONMENT` (`production` disables `/docs`, `/redoc`, `/openapi.json`),
+  `RATE_LIMIT_ANALYSIS_PER_MINUTE` (20), `RATE_LIMIT_CHAT_PER_MINUTE` (30), `RATE_LIMIT_WINDOW_SECONDS` (60; a limit of 0 disables it), `SENTIMIND_MODEL_PATH` / `SENTIMIND_VECTORIZER_PATH`.
 - Frontend: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (required), `VITE_API_URL`.
 
 ---
