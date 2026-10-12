@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useState } from "react";
 
 /**
  * SentiBotAvatar — Premium EVE-style Therapist Companion Bot.
@@ -236,7 +236,8 @@ export default function SentiBotAvatar({
 
   const s = px / 120;
 
-  const botId = useMemo(() => `sentibot-${Math.random().toString(36).slice(2, 8)}`, []);
+  // useId is stable and unique per instance; strip ":" so the id is safe inside url(#...).
+  const botId = `sentibot-${useId().replace(/:/g, "")}`;
 
   return (
     <div
@@ -400,4 +401,4 @@ export default function SentiBotAvatar({
   );
 }
 
-export { EMOTION_THEMES };
+

@@ -26,6 +26,7 @@ export function useServerWarmup() {
   const retryTimerRef = useRef(null);
   const elapsedTimerRef = useRef(null);
   const mountedRef = useRef(true);
+  const probeRef = useRef(null); // lets the retry timer call the latest probe
 
   const clearTimers = useCallback(() => {
     clearTimeout(retryTimerRef.current);
@@ -63,11 +64,18 @@ export function useServerWarmup() {
     if (!mountedRef.current) return;
     setStatus("cold");
     startElapsedTimer();
-    retryTimerRef.current = setTimeout(probe, RETRY_INTERVAL_MS);
+    retryTimerRef.current = setTimeout(() => probeRef.current?.(), RETRY_INTERVAL_MS);
   }, [clearTimers, startElapsedTimer]);
 
   useEffect(() => {
+    probeRef.current = probe;
+  }, [probe]);
+
+  useEffect(() => {
     mountedRef.current = true;
+    // probe() is async: every setState in it runs after `await fetch(...)`, i.e.
+    // in a later task, so this does not cause a synchronous cascading render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     probe();
 
     return () => {
