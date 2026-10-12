@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -10,7 +10,7 @@ from app.api import router
 from app.core.config import settings
 from app.models import emotions
 from app.models.classifier import classifier
-from app.services import ner, openrouter
+from app.services import keepalive, ner, openrouter
 
 logger = logging.getLogger(__name__)
 
@@ -94,5 +94,16 @@ def health_check():
 @app.get("/wake")
 def wake():
     """Lightweight keep-alive endpoint — no ML inference, returns instantly.
-    Intended to be hit every ~10 min by a cron job to prevent Render free-tier spin-down."""
+    Used by the frontend's warm-up probe. For scheduled pings use /keepalive."""
     return {"alive": True}
+
+
+@app.get("/keepalive")
+async def keep_alive(response: Response):
+    """Scheduled-pinger endpoint: keeps the Render dyno awake and touches Supabase so the
+    free-tier project isn't paused for inactivity. Returns 503 if the database ping fails,
+    so the pinger's logs show the failure."""
+    database = await keepalive.ping_database()
+    if database["status"] == "error":
+        response.status_code = 503
+    return {"alive": True, "database": database}

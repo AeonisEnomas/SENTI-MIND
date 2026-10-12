@@ -35,7 +35,9 @@ def _get_client() -> httpx.AsyncClient:
 
 async def aclose_client() -> None:
     global _client, _client_loop
-    if _client is not None and not _client.is_closed:
+    # A client bound to another (already closed) event loop can't be closed from this one;
+    # its connections died with that loop, so just drop the reference.
+    if _client is not None and not _client.is_closed and _client_loop is asyncio.get_running_loop():
         await _client.aclose()
     _client = None
     _client_loop = None

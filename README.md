@@ -195,7 +195,8 @@ Open a **new** terminal window and run:
 
 ### Health Check
 - `GET /health` - API health status and CORS configuration
-- `GET /wake` - Lightweight keep-alive (no inference), used to warm up the Render free-tier instance
+- `GET /wake` - Instant no-I/O probe, used by the frontend warm-up banner
+- `GET /keepalive` - Scheduled keep-alive: wakes the Render instance and runs a tiny Supabase query so the free-tier project isn't paused (pinged every 10 min by `.github/workflows/keep-alive.yml`)
 
 Interactive API docs are served at `/docs` (disabled, along with `/redoc` and `/openapi.json`, when `ENVIRONMENT=production`). `/analysis/` and `/chat/` are rate-limited per user (`RATE_LIMIT_*` in `.env.example`).
 

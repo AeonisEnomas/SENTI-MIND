@@ -122,7 +122,7 @@ SENTI-MIND/
 │   │   ├── generate_training_data.py     # Writes every unique pool sentence once
 │   │   ├── train_model.py                # Group-aware split, grouped CV grid search
 │   │   ├── eval_cases.py                 # 51 held-out adversarial cases + leakage helpers
-│   │   ├── keep_alive.py                 # Pings /wake (needs an external scheduler)
+│   │   ├── keep_alive.py                 # Pings /keepalive once (GitHub Actions workflow runs it every 10 min)
 │   │   └── training_data/                # Modular class data files
 │   ├── tests/
 │   │   ├── test_preprocessor.py          # Preprocessor unit tests
@@ -333,7 +333,8 @@ to the `environment.sklearn_version` recorded in the metadata.
 | POST/GET | `/api/v1/mood/`, `/api/v1/mood/heatmap`, `/api/v1/mood/trends` | Mood logging and charts |
 | POST/GET | `/api/v1/screener/`, `/api/v1/screener/history` | GAD-2 / PHQ-2 screeners |
 | GET | `/health` | Status + allowed CORS origins |
-| GET | `/wake` | No-inference keep-alive for Render cold starts |
+| GET | `/wake` | Instant no-I/O probe (frontend warm-up banner) |
+| GET | `/keepalive` | Scheduled keep-alive: wakes Render and touches Supabase (503 if the DB ping fails) |
 
 ---
 

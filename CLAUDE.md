@@ -81,8 +81,9 @@ Classifier, spaCy, and Supabase calls are synchronous, so routes run them in the
 `POST /api/v1/chat/` → `services/agent_service.AgentService`: an OpenRouter chat with a long "Senti-Agent" clinical-psychologist system prompt. The frontend sends prior turns only, in Gemini shape (`{role: "user"|"model", parts: [...]}`), built by `src/lib/chatHistory.js`. The agent converts them to OpenAI-style messages and keeps the last 40. The prompt includes crisis rules that reference regional (Pakistan) services: Umang and 1122.
 
 ### Cold-start handling (Render free tier)
-- `GET /wake` is a no-inference keep-alive endpoint, and `GET /health` returns `{"status": "ok"}`.
-- `scripts/keep_alive.py` pings `/wake`. Render cron jobs are a paid feature; a free external pinger works too.
+- `GET /wake` returns instantly with no I/O. `GET /health` returns `{"status": "ok"}`.
+- `GET /keepalive` is for scheduled pingers. It also makes a tiny anon PostgREST read (`services/keepalive.py`, cached for 60 s) so the free Supabase project isn't paused, and returns 503 if the database ping fails.
+- `.github/workflows/keep-alive.yml` hits `/keepalive` every 10 minutes. The repo variable `BACKEND_URL` overrides the Render URL. `scripts/keep_alive.py` does the same ping once, for other schedulers.
 - The frontend's `hooks/useServerWarmup.js` probes `/wake` and shows `WarmupBanner` while the server is cold.
 
 ### CORS

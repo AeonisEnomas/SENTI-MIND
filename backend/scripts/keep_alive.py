@@ -1,20 +1,17 @@
 """
-keep_alive.py — Render free-tier cold-start prevention.
+keep_alive.py — keep the free-tier backend and database awake.
 
-Pings the /wake endpoint so the service does not hit Render's 15-minute
-inactivity threshold and spin down. The script exits after ONE ping; an
-external scheduler is responsible for running it every ~10 minutes.
+Pings the backend's /keepalive endpoint once and exits. The request wakes the
+Render service (which spins down after ~15 minutes idle) and the endpoint makes
+a tiny Supabase query, so the free-tier project isn't paused for inactivity.
+Exits 1 if the backend is unreachable or reports a database failure (HTTP 503).
 
-Scheduling options:
-  - Render Cron Job (NOTE: cron jobs are a paid Render feature, they are not
-    available on the free tier):
-      Command : python backend/scripts/keep_alive.py
-      Schedule: */10 * * * *
-      Env var : RENDER_BACKEND_URL=https://senti-mind-majc.onrender.com
-  - Free alternatives: a GitHub Actions scheduled workflow (`on: schedule`
-    with `cron: "*/10 * * * *"`, running this script or a plain `curl` of
-    /wake), or an external pinger such as cron-job.org or UptimeRobot pointed
-    at https://<your-service>.onrender.com/wake.
+Scheduling: .github/workflows/keep-alive.yml runs the same ping every 10 minutes
+on GitHub Actions (free for public repos). Render cron jobs are a paid feature.
+External pingers such as cron-job.org or UptimeRobot pointed at
+https://<your-service>.onrender.com/keepalive work as a backup.
+
+Usage: RENDER_BACKEND_URL=https://<your-service>.onrender.com python backend/scripts/keep_alive.py
 """
 
 import os
@@ -24,8 +21,9 @@ import urllib.request
 from datetime import datetime, timezone
 
 BACKEND_URL = os.getenv("RENDER_BACKEND_URL", "https://senti-mind-majc.onrender.com").rstrip("/")
-WAKE_PATH = "/wake"
-TIMEOUT_SECONDS = 20
+WAKE_PATH = "/keepalive"
+# A cold start on Render's free tier can take close to a minute.
+TIMEOUT_SECONDS = 90
 
 
 def ping() -> bool:
@@ -34,7 +32,7 @@ def ping() -> bool:
     try:
         with urllib.request.urlopen(url, timeout=TIMEOUT_SECONDS) as resp:
             body = resp.read().decode()
-            print(f"[{ts}] WAKE OK  {url}  ->  {body.strip()}")
+            print(f"[{ts}] KEEPALIVE OK  {url}  ->  {body.strip()}")
             return True
     except urllib.error.HTTPError as exc:
         print(f"[{ts}] HTTP {exc.code} from {url}: {exc.reason}", file=sys.stderr)
