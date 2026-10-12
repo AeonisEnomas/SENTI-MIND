@@ -45,7 +45,7 @@ SENTI-MIND is an AI-powered mental health text analysis application that detects
 │  │                         Model Layer                                   ││
 │  │  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐   ││
 │  │  │ LinearSVC +     │  │ HuggingFace      │  │ OpenRouter       │   ││
-│  │  │ TF-IDF (v3)     │  │ distilroberta    │  │ mimo-v2-omni     │   ││
+│  │  │ TF-IDF (v3)     │  │ distilroberta    │  │ gemini-flash-lite│   ││
 │  │  └─────────────────┘  └──────────────────┘  └──────────────────┘   ││
 │  └────────────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────────────┘
@@ -81,7 +81,7 @@ SENTI-MIND is an AI-powered mental health text analysis application that detects
 | Service | Model/Endpoint | Purpose |
 |---------|---------------|---------|
 | HuggingFace | `j-hartmann/emotion-english-distilroberta-base` | 7-class emotion detection |
-| OpenRouter | `xiaomi/mimo-v2-omni` | LLM insight generation |
+| OpenRouter | `google/gemini-3.1-flash-lite-preview` (default, `OPENROUTER_MODEL`) | LLM insight generation + chat agent |
 
 ---
 
@@ -259,8 +259,10 @@ class AnalysisResponse(BaseModel):
 # Required
 HF_API_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxx  # HuggingFace token
 
-# Optional (for LLM insights)
+# Optional (for LLM insights + chat agent; falls back to canned text without it)
 OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxx   # OpenRouter API key
+OPENROUTER_MODEL=google/gemini-3.1-flash-lite-preview   # any OpenRouter model id
+OPENROUTER_MAX_TOKENS=1024               # output cap per request
 
 # App
 SECRET_KEY=change-me-in-production
