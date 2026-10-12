@@ -1,9 +1,12 @@
+import hashlib
+import json
 import logging
 import os
 from pathlib import Path
 
 import joblib
 import numpy as np
+import sklearn
 
 from app.core.preprocessing import preprocess
 
@@ -12,11 +15,18 @@ logger = logging.getLogger(__name__)
 _data_dir = Path(__file__).parent.parent.parent / "data"
 MODEL_PATH = Path(os.getenv("SENTIMIND_MODEL_PATH", _data_dir / "sentiment_model.joblib"))
 VECTORIZER_PATH = Path(os.getenv("SENTIMIND_VECTORIZER_PATH", _data_dir / "vectorizer.joblib"))
+# Written by scripts/train_model.py next to the artifacts.
+METADATA_PATH = MODEL_PATH.parent / "model_metadata.json"
+
+# Keys under metadata["sha256"] written by scripts/train_model.py.
+_MODEL_HASH_KEY = "sentiment_model.joblib"
+_VECTORIZER_HASH_KEY = "vectorizer.joblib"
 
 _UNKNOWN_RESULT = {"category": "Unknown", "confidence": 0.0, "top_categories": [], "is_ambiguous": False, "alternative_category": None, "confidence_tier": "none"}
 
-# Confidence thresholds
-# Below this -> "Uncertain"
+# Confidence thresholds. These only set `confidence_tier`; the category is
+# always the top class (callers decide what to do with a "low" tier).
+# Below this -> confidence_tier "low"
 CONFIDENCE_THRESHOLD = 0.35
 # If top-2 within this margin -> ambiguous
 AMBIGUITY_MARGIN = 0.10
@@ -28,17 +38,76 @@ class ClassifierNotLoadedError(RuntimeError):
     pass
 
 
+class ArtifactIntegrityError(RuntimeError):
+    pass
+
+
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _load_metadata() -> dict:
+    if not METADATA_PATH.exists():
+        logger.warning("Model metadata not found at %s; skipping artifact checks.", METADATA_PATH)
+        return {}
+    try:
+        with open(METADATA_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError) as exc:
+        logger.warning("Could not read model metadata %s (%s); skipping artifact checks.", METADATA_PATH, exc)
+        return {}
+
+
+def _verify_artifacts(metadata: dict) -> None:
+    """Check artifact SHA-256 hashes before unpickling them."""
+    hashes = metadata.get("sha256") or {}
+    expected = {
+        MODEL_PATH: hashes.get(_MODEL_HASH_KEY),
+        VECTORIZER_PATH: hashes.get(_VECTORIZER_HASH_KEY),
+    }
+    if not all(expected.values()):
+        logger.warning("Model metadata has no artifact hashes; skipping integrity check.")
+        return
+    for path, want in expected.items():
+        got = _sha256(path)
+        if got != want:
+            logger.error("SHA-256 mismatch for %s: expected %s, got %s", path, want, got)
+            raise ArtifactIntegrityError(
+                f"Refusing to load {path}: SHA-256 does not match {METADATA_PATH.name}. "
+                "Retrain with scripts/train_model.py or restore the matching artifacts."
+            )
+
+
+def _check_sklearn_version(metadata: dict) -> None:
+    trained_with = (metadata.get("environment") or {}).get("sklearn_version")
+    if trained_with and trained_with != sklearn.__version__:
+        logger.warning(
+            "Classifier artifacts were trained with scikit-learn %s but %s is installed; "
+            "predictions may differ or loading may fail. Pin scikit-learn==%s.",
+            trained_with, sklearn.__version__, trained_with,
+        )
+
+
 class ClinicalClassifier:
     def __init__(self) -> None:
         self._model = None
         self._vectorizer = None
         self._classes = None
+        self.model_version: str | None = None
 
     def load(self) -> None:
         if not MODEL_PATH.exists():
             raise FileNotFoundError(f"Model artifact not found: {MODEL_PATH}")
         if not VECTORIZER_PATH.exists():
             raise FileNotFoundError(f"Vectorizer artifact not found: {VECTORIZER_PATH}")
+
+        metadata = _load_metadata()
+        _verify_artifacts(metadata)
+        _check_sklearn_version(metadata)
 
         try:
             self._model = joblib.load(MODEL_PATH)
@@ -52,12 +121,17 @@ class ClinicalClassifier:
             raise RuntimeError(f"Unexpected vectorizer type: {type(self._vectorizer)}")
 
         self._classes = self._model.classes_
-        logger.info("ClinicalClassifier v3 loaded. Classes: %s", list(self._classes))
+        self.model_version = metadata.get("model_version")
+        logger.info(
+            "ClinicalClassifier %s loaded. Classes: %s",
+            self.model_version or "(unknown version)", list(self._classes),
+        )
 
     def unload(self) -> None:
         self._model = None
         self._vectorizer = None
         self._classes = None
+        self.model_version = None
 
     @property
     def is_loaded(self) -> bool:

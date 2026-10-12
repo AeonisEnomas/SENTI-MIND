@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Comprehensive tests for the clinical classifier v3."""
+"""Comprehensive tests for the clinical classifier."""
+
+import json
+import shutil
 
 import pytest
-from app.models.classifier import classifier
+
+import app.models.classifier as classifier_module
+from app.models.classifier import ArtifactIntegrityError, ClinicalClassifier, classifier
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -146,3 +151,59 @@ class TestClassifierState:
         assert isinstance(result, dict)
         assert "category" in result
         assert "confidence" in result
+
+    def test_model_version_from_metadata(self):
+        metadata = json.loads(classifier_module.METADATA_PATH.read_text())
+        assert classifier.model_version == metadata["model_version"]
+
+
+# ── Artifact integrity tests ───────────────────────────────────────────
+
+@pytest.fixture
+def artifact_copy(tmp_path, monkeypatch):
+    """Copy the real artifacts + metadata to tmp_path and point the loader there."""
+    paths = {}
+    for name in ("sentiment_model.joblib", "vectorizer.joblib", "model_metadata.json"):
+        dst = tmp_path / name
+        shutil.copy(classifier_module._data_dir / name, dst)
+        paths[name] = dst
+    monkeypatch.setattr(classifier_module, "MODEL_PATH", paths["sentiment_model.joblib"])
+    monkeypatch.setattr(classifier_module, "VECTORIZER_PATH", paths["vectorizer.joblib"])
+    monkeypatch.setattr(classifier_module, "METADATA_PATH", paths["model_metadata.json"])
+    return paths
+
+
+class TestArtifactIntegrity:
+    def test_metadata_hashes_match_committed_artifacts(self):
+        metadata = json.loads(classifier_module.METADATA_PATH.read_text())
+        hashes = metadata["sha256"]
+        assert hashes["sentiment_model.joblib"] == classifier_module._sha256(classifier_module.MODEL_PATH)
+        assert hashes["vectorizer.joblib"] == classifier_module._sha256(classifier_module.VECTORIZER_PATH)
+
+    def test_refuses_tampered_model(self, artifact_copy):
+        with open(artifact_copy["sentiment_model.joblib"], "ab") as f:
+            f.write(b"tampered")
+        clf = ClinicalClassifier()
+        with pytest.raises(ArtifactIntegrityError):
+            clf.load()
+        assert not clf.is_loaded
+
+    def test_loads_without_hashes_in_metadata(self, artifact_copy, caplog):
+        meta_path = artifact_copy["model_metadata.json"]
+        metadata = json.loads(meta_path.read_text())
+        metadata.pop("sha256")
+        meta_path.write_text(json.dumps(metadata))
+        clf = ClinicalClassifier()
+        clf.load()
+        assert clf.is_loaded
+        assert "no artifact hashes" in caplog.text
+
+    def test_warns_on_sklearn_version_mismatch(self, artifact_copy, caplog):
+        meta_path = artifact_copy["model_metadata.json"]
+        metadata = json.loads(meta_path.read_text())
+        metadata["environment"]["sklearn_version"] = "0.0.0"
+        meta_path.write_text(json.dumps(metadata))
+        clf = ClinicalClassifier()
+        clf.load()
+        assert clf.is_loaded
+        assert "trained with scikit-learn 0.0.0" in caplog.text

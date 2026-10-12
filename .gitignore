@@ -12,6 +12,8 @@ build/
 # Environment variables
 .env
 *.env
+.env.*
+!.env.example
 
 # ML artefacts
 *.csv
@@ -26,10 +28,14 @@ frontend/.cache/
 .idea/
 *.DS_Store
 
-# Pytest
+# Pytest / linters
 .pytest_cache/
+.ruff_cache/
 htmlcov/
 .coverage
+
+# Claude Code agent worktrees (live inside the repo)
+.claude/worktrees/
 
 # Generated
 graphify-out/

@@ -40,26 +40,69 @@ cleanup() {
 
 trap cleanup INT TERM
 
+# Python 3.11 or 3.12 is required (core ML deps do not support <=3.10 or 3.14+).
+is_supported_python() {
+    "$1" -c 'import sys; sys.exit(0 if sys.version_info[:2] in ((3, 11), (3, 12)) else 1)' > /dev/null 2>&1
+}
+
+find_python() {
+    for candidate in python3.12 python3.11 python3; do
+        if command -v "$candidate" > /dev/null 2>&1 && is_supported_python "$candidate"; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+VENV_DIR="backend/.venv"
+VENV_PY="$VENV_DIR/bin/python"
+REQ_STAMP="$VENV_DIR/.requirements.sha256"
+
 # Check and install backend dependencies
 echo -e "${YELLOW}Checking backend environment...${NC}"
-if [ ! -d "backend/.venv" ]; then
+if [ -x "$VENV_PY" ] && ! is_supported_python "$VENV_PY"; then
+    echo -e "${RED}$VENV_DIR uses Python $("$VENV_PY" -c 'import platform; print(platform.python_version())'), but 3.11 or 3.12 is required.${NC}"
+    echo -e "${RED}Delete $VENV_DIR and re-run this script.${NC}"
+    exit 1
+fi
+
+if [ ! -x "$VENV_PY" ]; then
     echo -e "${YELLOW}Creating backend virtual environment...${NC}"
-    cd backend
-    python3 -m venv .venv
-    source .venv/bin/activate
-    echo -e "${YELLOW}Installing python dependencies...${NC}"
-    pip install -r requirements.txt
-    echo -e "${YELLOW}Downloading spaCy model...${NC}"
-    python -m spacy download en_core_web_sm
-    cd ..
+    if command -v uv > /dev/null 2>&1; then
+        PY_VERSION="$(cat backend/.python-version 2>/dev/null || echo 3.11)"
+        uv venv --python "$PY_VERSION" "$VENV_DIR" || exit 1
+    else
+        PYTHON_BIN="$(find_python)"
+        if [ -z "$PYTHON_BIN" ]; then
+            echo -e "${RED}No supported Python found. SentiMind needs Python 3.11 or 3.12${NC}"
+            echo -e "${RED}(tried python3.12, python3.11, python3). Install one, or install uv${NC}"
+            echo -e "${RED}(https://docs.astral.sh/uv/) so it can fetch the right version.${NC}"
+            exit 1
+        fi
+        echo "Using $PYTHON_BIN ($("$PYTHON_BIN" --version 2>&1))"
+        "$PYTHON_BIN" -m venv "$VENV_DIR" || exit 1
+    fi
+fi
+
+# (Re)install dependencies when requirements.txt changed since the last install.
+REQ_HASH="$(sha256sum backend/requirements.txt | cut -d' ' -f1)"
+if [ "$(cat "$REQ_STAMP" 2>/dev/null)" != "$REQ_HASH" ]; then
+    echo -e "${YELLOW}Installing python dependencies (includes the spaCy model)...${NC}"
+    if command -v uv > /dev/null 2>&1; then
+        uv pip install --python "$VENV_PY" -r backend/requirements.txt || exit 1
+    else
+        "$VENV_PY" -m pip install -r backend/requirements.txt || exit 1
+    fi
+    echo "$REQ_HASH" > "$REQ_STAMP"
     echo -e "${GREEN}Backend setup complete!${NC}"
 fi
 
-# Ensure .env exists
-if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+# Ensure .env exists at the repo root (shared by backend and frontend)
+if [ ! -f "$PROJECT_DIR/.env" ] && [ -f "$PROJECT_DIR/.env.example" ]; then
     echo -e "${YELLOW}Creating .env from .env.example...${NC}"
-    cp .env.example .env
-    echo -e "${RED}IMPORTANT: Please update .env with your API keys (HF_API_TOKEN, etc.)${NC}"
+    cp "$PROJECT_DIR/.env.example" "$PROJECT_DIR/.env"
+    echo -e "${RED}IMPORTANT: Fill in .env (Supabase keys, HF_API_TOKEN, OPENROUTER_API_KEY) before using the app.${NC}"
 fi
 
 # Check and install frontend dependencies

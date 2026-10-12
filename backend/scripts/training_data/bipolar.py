@@ -1,7 +1,6 @@
 BIPOLAR = [
     "I cycle between feeling invincible and then completely worthless",
     "I spent thousands of dollars in a weekend and now regret it",
-    "I barely slept for three days and felt amazing until I crashed",
     "My energy swings wildly from too much to barely any",
     "I feel euphoric and untouchable then suddenly suicidal",
     "During my highs I make reckless decisions I later regret",

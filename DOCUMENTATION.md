@@ -4,7 +4,7 @@
 
 SENTI-MIND is an AI-powered mental health text analysis application that detects emotional states and clinical risks (depression, anxiety, suicidal thoughts, etc.) and provides compassionate AI-generated coping strategies.
 
-**Location:** `C:\Users\Aeonis\Documents\GitHub\SENTI-MIND`
+**Repository:** https://github.com/AeonisEnomas/SENTI-MIND
 
 ---
 
@@ -45,7 +45,7 @@ SENTI-MIND is an AI-powered mental health text analysis application that detects
 │  │                         Model Layer                                   ││
 │  │  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐   ││
 │  │  │ LinearSVC +     │  │ HuggingFace      │  │ OpenRouter       │   ││
-│  │  │ TF-IDF (v3)     │  │ distilroberta    │  │ gemini-flash-lite│   ││
+│  │  │ TF-IDF (v5)     │  │ distilroberta    │  │ gemini-flash-lite│   ││
 │  │  └─────────────────┘  └──────────────────┘  └──────────────────┘   ││
 │  └────────────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────────────┘
@@ -67,15 +67,19 @@ SENTI-MIND is an AI-powered mental health text analysis application that detects
 ### Backend
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Python | 3.11+ | Runtime |
-| FastAPI | 0.100+ | Web framework |
-| Uvicorn | Latest | ASGI server |
-| scikit-learn | 1.3+ | LinearSVC, TF-IDF, CalibratedClassifierCV |
-| spaCy | 3.x | Named Entity Recognition |
-| httpx | 0.24+ | Async HTTP client |
-| joblib | 1.3+ | Model serialization |
-| pandas | 2.x | Data manipulation |
-| numpy | 1.24+ | Numerical operations |
+| Python | 3.11 or 3.12 | Runtime (≤3.10 and 3.14+ are not supported by the ML deps) |
+| FastAPI | 0.143 | Web framework |
+| Uvicorn | 0.54 | ASGI server |
+| scikit-learn | 1.8.0 (exact) | LinearSVC, TF-IDF, CalibratedClassifierCV; must match the artifacts |
+| spaCy | 3.8 + `en_core_web_sm` 3.8.0 | Named Entity Recognition |
+| httpx | 0.28 | Async HTTP client |
+| joblib | 1.6 | Model serialization |
+| numpy | 2.4 | Numerical operations |
+| supabase | 2.32 | Auth verification + RLS-scoped DB access |
+| pandas | 3.0 | Training only (`requirements-train.txt`) |
+
+Exact pins live in `backend/requirements.txt` (runtime), `requirements-dev.txt`
+(adds pytest, pytest-asyncio) and `requirements-train.txt` (adds pandas).
 
 ### External APIs
 | Service | Model/Endpoint | Purpose |
@@ -93,13 +97,15 @@ SENTI-MIND/
 │   ├── app/
 │   │   ├── main.py                       # FastAPI app entry point
 │   │   ├── api/
-│   │   │   └── analysis.py               # Main POST /analysis endpoint
+│   │   │   ├── analysis.py               # POST /api/v1/analysis/ (full pipeline)
+│   │   │   ├── chat.py                   # POST /api/v1/chat/ (Senti-Agent)
+│   │   │   └── journal.py, mood.py, screener.py, auth_middleware.py
 │   │   ├── core/
 │   │   │   ├── config.py                 # Settings (env vars)
 │   │   │   ├── constants.py              # Thresholds, categories
 │   │   │   └── preprocessing.py          # Shared ML text preprocessor
 │   │   ├── models/
-│   │   │   ├── classifier.py             # ClinicalClassifier v3 (LinearSVC)
+│   │   │   ├── classifier.py             # ClinicalClassifier (LinearSVC, hash-verified load)
 │   │   │   ├── emotions.py               # HuggingFace emotion detection
 │   │   │   ├── llm.py                    # OpenRouter insight generation
 │   │   │   └── schemas.py                # Pydantic request/response models
@@ -108,20 +114,25 @@ SENTI-MIND/
 │   │       ├── preprocessor.py           # Base Text cleaning (Emoji handling)
 │   │       └── risk_engine.py            # Enhanced risk assessment
 │   ├── data/                             # Model artifacts & training data
-│   │   ├── Combined Data.csv             # 1,400 training samples (7 classes)
-│   │   ├── sentiment_model_v3.joblib     # Trained LinearSVC (v3)
-│   │   ├── vectorizer_v3.joblib          # TF-IDF vectorizer (v3)
-│   │   └── model_metadata.json           # Training metrics
+│   │   ├── Combined Data.csv             # Generated, gitignored (3,841 unique synthetic sentences)
+│   │   ├── sentiment_model.joblib        # Calibrated LinearSVC (v5)
+│   │   ├── vectorizer.joblib             # TF-IDF vectorizer (v5)
+│   │   └── model_metadata.json           # Metrics, leakage stats, versions, SHA-256 hashes
 │   ├── scripts/
-│   │   ├── generate_training_data.py     # Data generator pulling from training_data/
-│   │   ├── train_model.py                # Training pipeline (GridSearchCV, CV)
+│   │   ├── generate_training_data.py     # Writes every unique pool sentence once
+│   │   ├── train_model.py                # Group-aware split, grouped CV grid search
+│   │   ├── eval_cases.py                 # 51 held-out adversarial cases + leakage helpers
+│   │   ├── keep_alive.py                 # Pings /wake (needs an external scheduler)
 │   │   └── training_data/                # Modular class data files
 │   ├── tests/
 │   │   ├── test_preprocessor.py          # Preprocessor unit tests
 │   │   ├── test_emotions.py              # Emotion detection tests
-│   │   ├── test_classifier.py            # Classifier v3 tests
+│   │   ├── test_classifier.py            # Classifier + artifact integrity tests
+│   │   ├── test_openrouter.py            # LLM client tests
 │   │   └── test_risk_engine.py           # Risk engine tests
-│   └── requirements.txt                  # Python dependencies
+│   ├── requirements.txt                  # Runtime deps (pinned, incl. spaCy model)
+│   ├── requirements-dev.txt              # + pytest
+│   └── requirements-train.txt            # + pandas
 ├── frontend/                             # React + Vite frontend
 │   ├── src/
 │   │   ├── components/
@@ -130,8 +141,9 @@ SENTI-MIND/
 │   │   │   └── RiskBadge.jsx           # Risk level indicator
 │   │   ├── hooks/
 │   │   │   └── useAnalysis.js          # React hook for API calls
+│   │   ├── pages/                      # Journal, Chat, History, Screener, ... (behind ProtectedRoute)
 │   │   ├── services/
-│   │   │   └── api.js                  # Axios/Fetch wrapper
+│   │   │   └── *Service.js             # Axios clients (attach the Supabase JWT)
 │   │   ├── App.jsx                     # Main app component
 │   │   └── main.jsx                      # Entry point
 │   ├── index.html
@@ -163,15 +175,16 @@ SENTI-MIND/
 
 ---
 
-### 2. Clinical Classifier v3 (`app/models/classifier.py`)
+### 2. Clinical Classifier (`app/models/classifier.py`, model v5)
 
 **Class:** `ClinicalClassifier`
 
-**Improvements over v2:**
+**Behaviour:**
 - **Shared Preprocessor**: Uses `app.core.preprocessing` to guarantee inference matches training.
-- **Confidence Thresholds**: Returns `"Uncertain"` if confidence is below 35%.
-- **Ambiguity Detection**: Sets `is_ambiguous = True` if the top two classes are within 10% probability.
-- **Insufficient Content Filter**: Short texts (< 3 words) return `"Insufficient"`.
+- **Confidence Tiers**: `category` is always the top class. `confidence_tier` is `"high"` (≥ 0.70), `"medium"` (≥ 0.35) or `"low"` (< 0.35); a low tier does **not** change the category to "Uncertain". Callers (risk engine, frontend) read the tier.
+- **Ambiguity Detection**: Sets `is_ambiguous = True` (and `alternative_category`) if the top two classes are within 0.10 probability.
+- **Insufficient Content Filter**: Fewer than 3 meaningful words returns `"Insufficient"`; empty input returns `"Unknown"`.
+- **Artifact integrity**: At load, the SHA-256 of the model and vectorizer is checked against `model_metadata.json`; on mismatch the classifier logs an error and refuses to load (the check is skipped with a warning if the metadata has no hashes). A warning is logged if the installed scikit-learn differs from the training version. The log line shows the metadata's `model_version`.
 
 **Pipeline:**
 1. **Preprocessing**:
@@ -179,7 +192,7 @@ SENTI-MIND/
    - Contraction expansion (`"can't"` → `"cannot"`)
    - Negation scoping (3-word window): `"not very happy"` → `NEG_very NEG_happy`
    - Intensity & temporal marker addition
-2. **Vectorization**: TF-IDF (1-2 ngrams, 15K features)
+2. **Vectorization**: TF-IDF (1-2 ngrams, 15K features, chosen by grid search)
 3. **Classification**: Calibrated LinearSVC → probability estimates
 
 **Output:**
@@ -199,10 +212,11 @@ SENTI-MIND/
 ```
 
 **Model Files:**
-- `data/sentiment_model_v3.joblib`
-- `data/vectorizer_v3.joblib`
+- `data/sentiment_model.joblib`
+- `data/vectorizer.joblib`
+- `data/model_metadata.json`
 
-**Training:** Run `scripts/train_model.py` with `data/Combined Data.csv`
+**Training:** see [Training Pipeline](#training-pipeline).
 
 ---
 
@@ -255,23 +269,14 @@ class AnalysisResponse(BaseModel):
 
 ## Configuration (`.env`)
 
-```bash
-# Required
-HF_API_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxx  # HuggingFace token
+A single `.env` at the **repo root** serves both halves (`vite.config.js` sets
+`envDir: "../"`; `app/core/config.py` reads `.env` or `../.env`). Copy
+[`.env.example`](.env.example), which documents every variable:
 
-# Optional (for LLM insights + chat agent; falls back to canned text without it)
-OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxx   # OpenRouter API key
-OPENROUTER_MODEL=google/gemini-3.1-flash-lite-preview   # any OpenRouter model id
-OPENROUTER_MAX_TOKENS=1024               # output cap per request
-
-# App
-SECRET_KEY=change-me-in-production
-ALLOWED_ORIGINS=http://localhost:5173
-
-# Model Paths (optional)
-SENTIMIND_MODEL_PATH=data/sentiment_model_v3.joblib
-SENTIMIND_VECTORIZER_PATH=data/vectorizer_v3.joblib
-```
+- Backend: `HF_API_TOKEN`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_MAX_TOKENS`,
+  `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `ALLOWED_ORIGINS`, `ENVIRONMENT` (`production` disables `/docs`, `/redoc`, `/openapi.json`),
+  `RATE_LIMIT_ANALYSIS_PER_MINUTE` (20), `RATE_LIMIT_CHAT_PER_MINUTE` (30), `RATE_LIMIT_WINDOW_SECONDS` (60; a limit of 0 disables it), `SENTIMIND_MODEL_PATH` / `SENTIMIND_VECTORIZER_PATH`.
+- Frontend: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (required), `VITE_API_URL`.
 
 ---
 
@@ -279,13 +284,65 @@ SENTIMIND_VECTORIZER_PATH=data/vectorizer_v3.joblib
 
 ### Data Format (`data/Combined Data.csv`)
 
-Generated by `scripts/generate_training_data.py`. Pulls 200 samples per class from the modular `scripts/training_data/` package.
+Generated by `scripts/generate_training_data.py` from the modular `scripts/training_data/`
+package. Every unique sentence (after case/punctuation normalisation) is written once;
+any sentence that matches a held-out evaluation sentence (`scripts/eval_cases.py` or a
+`classifier.predict("...")` call in `tests/test_classifier.py`) is dropped.
 
-**Total:** 1,400 samples across 7 classes (including hard negatives to prevent keyword overfitting).
+**Total:** 3,841 synthetic samples across 7 classes (476–621 per class, including hard
+negatives to prevent keyword overfitting). Imbalance is handled with
+`class_weight="balanced"`. This is not clinical data.
 
 ### Training Script (`scripts/train_model.py`)
 
-Runs a GridSearchCV to find optimal `C` and TF-IDF parameters. Evaluates using Stratified 10-Fold CV. Finally, runs a 50+ case adversarial spot-check to guarantee the model passes rigorous edge cases (negations, non-clinical context). Outputs `v3` artifacts.
+1. Clusters near-duplicate sentences (token Jaccard ≥ 0.6, union-find) into groups.
+2. Holds out ~20% as a test set with `StratifiedGroupKFold`, so no group spans train and test.
+3. Grid-searches `C`, n-gram range and `max_features` with group-aware 5-fold CV **on the
+   training split only**.
+4. Fits the final model on the training split (the saved artifact is the one the test
+   metrics describe), evaluates it on the test set and on the 51 adversarial cases.
+5. Writes the artifacts and `model_metadata.json` (metrics, confusion matrix, leakage
+   check, Python/scikit-learn versions, git commit, SHA-256 of the CSV and artifacts).
+
+### Current results (v5)
+
+| | v4 (previous, random split) | v5 (group split) |
+|---|---|---|
+| Held-out macro F1 | 0.795 | 0.767 |
+| Held-out accuracy | 0.795 | 0.773 |
+| CV macro F1 | 0.792 ± 0.029 (10-fold, included test rows) | 0.759 ± 0.027 (grouped 5-fold, train only) |
+| Adversarial spot-check | 43/51 (8 cases were in the training data) | 46/51 (37/42 without a train near-duplicate) |
+| Test rows with a near-duplicate in train | ~26% | 0% |
+
+Weakest class: Depression (F1 0.52), confused with Personality disorder and Bipolar.
+These are metrics on synthetic text; **the classifier is not clinically validated.**
+
+After any change to `app/core/preprocessing.py` or the training data, regenerate, retrain
+and run `pytest tests/test_classifier.py`; keep `scikit-learn` in `requirements.txt` equal
+to the `environment.sklearn_version` recorded in the metadata.
+
+---
+
+## API Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/analysis/` | Full analysis pipeline |
+| POST | `/api/v1/chat/` | Senti-Agent chat (OpenRouter) |
+| POST/GET | `/api/v1/journal/`, `/api/v1/journal/{entry_id}`, `/api/v1/journal/gratitude/` | Journal entries and gratitude snippets |
+| POST/GET | `/api/v1/mood/`, `/api/v1/mood/heatmap`, `/api/v1/mood/trends` | Mood logging and charts |
+| POST/GET | `/api/v1/screener/`, `/api/v1/screener/history` | GAD-2 / PHQ-2 screeners |
+| GET | `/health` | Status + allowed CORS origins |
+| GET | `/wake` | No-inference keep-alive for Render cold starts |
+
+---
+
+## Crisis Resources
+
+The app's crisis banner and chat agent point to Pakistan services:
+- **Umang Mental Health Helpline**: 042 3576 5951
+- **Rescue 1122** (emergency services): 1122
+- Elsewhere: the IASP crisis centre directory, https://www.iasp.info/resources/Crisis_Centres/
 
 ---
 
@@ -298,6 +355,6 @@ Runs a GridSearchCV to find optimal `C` and TF-IDF parameters. Evaluates using S
 
 ---
 
-**Last Updated:** April 2026
-**Version:** 3.0 (ML Pipeline Rebuild)
+**Last Updated:** October 2026
+**Version:** Classifier v5 (group-aware evaluation)
 **Maintainer:** Future agents - read this before making changes!

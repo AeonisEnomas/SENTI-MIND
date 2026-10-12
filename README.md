@@ -44,18 +44,17 @@
 - **Database**: Supabase (PostgreSQL)
 
 ### Backend
-- **Framework**: FastAPI 0.110+
-- **Server**: Uvicorn (standard)
-- **Validation**: Pydantic 2.6
-- **Data Processing**: Pandas 2.2
-- **NLP**: spaCy 3.7 (en_core_web_sm model)
-- **ML**: Scikit-Learn 1.4 (LinearSVC with TF-IDF vectorizer)
-- **Model Persistence**: Joblib 1.3
-- **Database**: Supabase Python client 2.4
-- **Authentication**: python-jose 3.3 with PyJWT 2.8, passlib[bcrypt] 1.7
-- **HTTP Client**: httpx 0.27
-- **Testing**: pytest 8.0, pytest-asyncio 0.23
-- **Environment**: python-dotenv 1.0
+Exact versions are pinned in `backend/requirements.txt` (runtime),
+`backend/requirements-dev.txt` (tests) and `backend/requirements-train.txt` (retraining).
+- **Runtime**: Python 3.11 or 3.12
+- **Framework**: FastAPI, served by Uvicorn
+- **Validation / settings**: Pydantic 2, pydantic-settings
+- **NLP**: spaCy 3.8 with `en_core_web_sm` (installed from `requirements.txt`)
+- **ML**: scikit-learn 1.8.0 (calibrated LinearSVC over TF-IDF), joblib, numpy. The scikit-learn pin must match the version the model artifacts were trained with.
+- **Database & auth**: Supabase Python client (JWTs are verified through Supabase; queries run under Row-Level Security)
+- **HTTP client**: httpx
+- **Testing**: pytest, pytest-asyncio
+- **Training only**: pandas
 
 ### AI/ML Components
 - **Emotion Detection**: HuggingFace Inference API (j-hartmann/emotion-english-distilroberta-base)
@@ -84,6 +83,16 @@ Access the fully functional app instantly without installation:
 > [!CAUTION]
 > **Python 3.11 or 3.12 required.** Python 3.10 and below, or 3.14+ are currently NOT supported by core ML dependencies.
 
+#### Quick start (Linux/macOS)
+
+```bash
+./start.sh
+```
+
+This picks Python 3.11/3.12 (via `uv` if installed), creates `backend/.venv`, installs
+`backend/requirements.txt`, copies `.env.example` to `.env` if missing, installs frontend
+packages and starts both servers. Fill in `.env` before using the app.
+
 #### 1️⃣ Backend Setup
 
 1. Navigate to the backend folder:
@@ -91,37 +100,38 @@ Access the fully functional app instantly without installation:
    cd backend
    ```
 
-2. Create and activate virtual environment (Windows):
+2. Create and activate a virtual environment with Python 3.11 or 3.12 (Windows):
    ```bash
-   python -m venv .venv
+   py -3.11 -m venv .venv
    .venv\Scripts\activate
    ```
    
    Or on macOS/Linux:
    ```bash
-   python -m venv .venv
+   python3.11 -m venv .venv
    source .venv/bin/activate
    ```
 
-3. Install dependencies:
+3. Install dependencies (this also installs the spaCy `en_core_web_sm` model):
    ```bash
    pip install -r requirements.txt
+   # for running the tests:
+   pip install -r requirements-dev.txt
+   # for regenerating data / retraining the classifier:
+   pip install -r requirements-train.txt
    ```
 
-4. Download the spaCy language model:
+4. Configure environment variables: copy `.env.example` (repo root) to `.env` in the
+   repo root and fill it in. A single `.env` serves both the backend and the frontend;
+   every variable is documented in [`.env.example`](.env.example). At minimum you need
+   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`;
+   `HF_API_TOKEN` and `OPENROUTER_API_KEY` enable emotion detection and LLM insights/chat
+   (the pipeline degrades gracefully without them).
+
+5. Run the tests (from `backend/`):
    ```bash
-   python -m spacy download en_core_web_sm
+   pytest
    ```
-
-5. Configure environment variables:
-   - Rename `.env.example` to `.env`
-   - Add your API keys:
-     - `HF_API_TOKEN` - HuggingFace API token (for emotion detection)
-     - `OPENROUTER_API_KEY` - OpenRouter API key (for LLM insights and the chat agent)
-     - `OPENROUTER_MODEL` (optional) - any OpenRouter model id; defaults to `google/gemini-3.1-flash-lite-preview`
-     - `SUPABASE_URL` - Supabase project URL
-     - `SUPABASE_KEY` - Supabase service key
-     - `SECRET_KEY` - JWT secret for authentication
 
 6. Start the FastAPI server:
    ```bash
@@ -160,7 +170,10 @@ Open a **new** terminal window and run:
 ## 📊 API Endpoints
 
 ### Analysis
-- `POST /api/v1/analyze` - Analyze text and get full pipeline results
+- `POST /api/v1/analysis/` - Analyze text and get full pipeline results
+
+### Chat Agent
+- `POST /api/v1/chat/` - Chat with the Senti-Agent (LLM via OpenRouter)
 
 ### Journal
 - `POST /api/v1/journal/` - Save journal entry
@@ -182,13 +195,17 @@ Open a **new** terminal window and run:
 
 ### Health Check
 - `GET /health` - API health status and CORS configuration
+- `GET /wake` - Lightweight keep-alive (no inference), used to warm up the Render free-tier instance
+
+Interactive API docs are served at `/docs` (disabled, along with `/redoc` and `/openapi.json`, when `ENVIRONMENT=production`). `/analysis/` and `/chat/` are rate-limited per user (`RATE_LIMIT_*` in `.env.example`).
 
 ---
 
 ## 🔬 Machine Learning Models
 
 ### Clinical Classifier Training
-Training data includes 200 samples per category (1,400 total):
+The training data is **synthetic**: 3,841 unique hand-written / template-generated
+sentences in `backend/scripts/training_data/` (476–621 per class), across:
 - Depression
 - Anxiety
 - Suicidal ideation
@@ -198,21 +215,59 @@ Training data includes 200 samples per category (1,400 total):
 - Normal/Healthy
 
 Features engineered with:
-- **TF-IDF Vectorization**: Captures term importance (15K features)
-- **N-grams**: 1-2 grams for context
+- **TF-IDF Vectorization**: 1–2 grams, 15K features (chosen by grid search)
 - **Negation Handling**: 3-word scoped negation (e.g., `not very happy` → `NEG_very NEG_happy`)
 - **Crisis Indicators**: Weighted crisis keywords and past-tense recovery context handling
+- **Class balancing**: `class_weight="balanced"`
 - **Calibration**: Sigmoid calibration for probability estimates
 
-Model achieves 87.1% macro F1 and passes 96% of adversarial edge cases (including hard-negatives).
+### Evaluation (model v5)
+Many sentences are near-duplicates of each other (shared templates), so a random
+train/test split overstates accuracy: about 26% of random-split test rows have a
+≥60%-word-overlap twin in the training set. The evaluation therefore:
+- clusters near-duplicates (token Jaccard ≥ 0.6) into groups and holds out ~20% of the
+  data with `StratifiedGroupKFold`, so no group is split across train and test
+  (0 near-duplicates between them);
+- tunes hyper-parameters with group-aware 5-fold CV on the training split only;
+- keeps the 51 adversarial cases (`scripts/eval_cases.py`) and the sentences used in
+  `tests/test_classifier.py` out of the training data.
+
+| Metric (held-out, group split) | Value |
+|---|---|
+| Macro F1 | 0.767 |
+| Accuracy | 0.773 |
+| Grouped 5-fold CV macro F1 (train split) | 0.759 ± 0.027 |
+| Adversarial spot-check | 46/51 (37/42 on cases with no near-duplicate in train) |
+
+Per-class F1 ranges from 0.52 (Depression, often confused with Personality disorder
+and Bipolar) to 0.91 (Anxiety). Full metrics, the confusion matrix, leakage statistics,
+library versions, the git commit and SHA-256 hashes of the data and artifacts are in
+`backend/data/model_metadata.json`.
+
+> [!WARNING]
+> These numbers measure performance on synthetic sentences that resemble the training
+> data. They say nothing about real-world text, and **the model is not clinically
+> validated**. Its output is a signal for the app's risk engine, not a diagnosis.
+
+The previous README figures (87.1% macro F1, 96% adversarial) did not match the
+shipped v4 artifacts, whose own metadata reported 0.795 macro F1 and 43/51 on a random
+split with near-duplicate and verbatim eval-sentence leakage.
+
+To retrain (from `backend/`, with `requirements-train.txt` installed):
+```bash
+cd scripts && python generate_training_data.py && cd ..
+python scripts/train_model.py
+pytest tests/test_classifier.py
+```
 
 ---
 
 ## 🔒 Security Features
 
-- **Authentication**: JWT-based with bcrypt password hashing
+- **Authentication**: Supabase Auth; the backend verifies each request's Supabase JWT
 - **CORS Protection**: Configured for frontend and deployment origin
-- **Environment Secrets**: API keys stored securely in .env
+- **Environment Secrets**: API keys stored in `.env` (never committed; see `.env.example`)
+- **Model integrity**: classifier artifacts are checked against the SHA-256 hashes in `model_metadata.json` before loading
 - **Input Validation**: Pydantic models for all requests
 - **Database Security**: Row-level security with Supabase
 
@@ -227,8 +282,10 @@ This project is open source. Check the repository for license details.
 ## 🆘 Crisis Support
 
 If you're experiencing a mental health crisis, please reach out to:
-- **National Suicide Prevention Lifeline**: 988 (US)
-- **Crisis Text Line**: Text HOME to 741741
-- **International Association for Suicide Prevention**: https://www.iasp.info/resources/Crisis_Centres/
+- **Umang Mental Health Helpline (Pakistan)**: 042 3576 5951
+- **Rescue 1122 (Pakistan emergency services)**: 1122
+- **Outside Pakistan**: find a local crisis line in the International Association for Suicide Prevention directory: https://www.iasp.info/resources/Crisis_Centres/
+
+These are the same resources the app shows in its crisis banner and chat agent.
 
 **SentiMind is a support tool, not a replacement for professional mental health care.**

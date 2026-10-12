@@ -1,17 +1,19 @@
-fastapi>=0.110.0
-uvicorn[standard]>=0.29.0
-pydantic>=2.6.0
-pydantic-settings>=2.2.0
-httpx>=0.27.0
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
-scikit-learn>=1.4.0
-joblib>=1.3.0
-numpy>=1.26.0
-spacy>=3.7.0
-python-dotenv>=1.0.0
-pytest>=8.0.0
-pytest-asyncio>=0.23.0
-pandas>=2.2.0
-supabase>=2.4.0
-PyJWT>=2.8.0
+# Runtime dependencies for the SentiMind API (pinned for reproducible deploys).
+# Python 3.11 or 3.12 is required.
+fastapi==0.143.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+pydantic-settings==2.15.0
+httpx==0.28.1
+supabase==2.32.0
+
+# ML / NLP. scikit-learn MUST match the version recorded in
+# data/model_metadata.json (the joblib artifacts are pickled with it).
+scikit-learn==1.8.0
+joblib==1.6.0
+numpy==2.4.6
+spacy==3.8.16
+
+# spaCy English model, installed from the official release wheel so that
+# Render / CI builds get it without running `python -m spacy download`.
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85
