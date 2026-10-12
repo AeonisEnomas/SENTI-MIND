@@ -1,66 +1,12 @@
-// Medical-grade category configuration with sage green theme
-const CATEGORY_CONFIG = {
-  Normal: {
-    color: "bg-sage-500",
-    text: "text-sage-700",
-    bg: "bg-sage-50",
-    border: "border-sage-200",
-  },
-  Stress: {
-    color: "bg-amber-400",
-    text: "text-amber-700",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-  },
-  Anxiety: {
-    color: "bg-medical-moderate",
-    text: "text-medical-moderate",
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-  },
-  Depression: {
-    color: "bg-medical-severe",
-    text: "text-medical-severe",
-    bg: "bg-rose-50",
-    border: "border-rose-200",
-  },
-  Suicidal: {
-    color: "bg-medical-emergency",
-    text: "text-medical-emergency",
-    bg: "bg-rose-100",
-    border: "border-rose-300",
-  },
-  Bipolar: {
-    color: "bg-indigo-500",
-    text: "text-indigo-700",
-    bg: "bg-indigo-50",
-    border: "border-indigo-200",
-  },
-  "Personality Disorder": {
-    color: "bg-violet-500",
-    text: "text-violet-700",
-    bg: "bg-violet-50",
-    border: "border-violet-200",
-  },
-};
-
-const CATEGORY_ICONS = {
-  Normal: "🌿",
-  Stress: "🌅",
-  Anxiety: "🌊",
-  Depression: "☁️",
-  Suicidal: "🚨",
-  Bipolar: "⚡",
-  "Personality Disorder": "🎭",
-};
+import { getCategoryConfig } from "../constants/categories";
 
 export default function ClinicalConfidenceBars({
   primaryCategory,
   confidence,
   topCategories,
 }) {
-  const primaryConfig = CATEGORY_CONFIG[primaryCategory] || CATEGORY_CONFIG.Normal;
-  const primaryIcon = CATEGORY_ICONS[primaryCategory] || "💭";
+  const primaryConfig = getCategoryConfig(primaryCategory);
+  const primaryIcon = primaryConfig.icon;
 
   return (
     <div className="medical-card">
@@ -83,7 +29,7 @@ export default function ClinicalConfidenceBars({
           </div>
           
           <div 
-            className={`w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-medical ${primaryConfig.color}`}
+            className={`w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-medical ${primaryConfig.bar}`}
           >
             {(confidence * 100).toFixed(0)}%
           </div>
@@ -99,7 +45,7 @@ export default function ClinicalConfidenceBars({
           </div>
           <div className="h-2.5 rounded-full bg-warm-100 overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-1000 ease-out ${primaryConfig.color}`}
+              className={`h-full rounded-full transition-all duration-1000 ease-out ${primaryConfig.bar}`}
               style={{ width: `${confidence * 100}%` }}
             />
           </div>
@@ -112,8 +58,8 @@ export default function ClinicalConfidenceBars({
 
             <div className="space-y-2.5">
               {topCategories.slice(1, 4).map((category) => {
-                const config = CATEGORY_CONFIG[category.category] || CATEGORY_CONFIG.Normal;
-                const icon = CATEGORY_ICONS[category.category] || "💬";
+                const config = getCategoryConfig(category.category);
+                const icon = config.icon;
                 const percentage = (category.confidence * 100).toFixed(0);
 
                 return (
@@ -126,7 +72,7 @@ export default function ClinicalConfidenceBars({
                     <div className="flex-1 h-1.5 rounded-full bg-warm-100 overflow-hidden"
                     >
                       <div
-                        className={`h-full rounded-full ${config.color} opacity-60`}
+                        className={`h-full rounded-full ${config.bar} opacity-60`}
                         style={{ width: `${percentage}%` }}
                       />
                     </div>

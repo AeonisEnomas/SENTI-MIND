@@ -1,53 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useModalA11y } from "../hooks/useModalA11y";
 import { X, Sparkles, Heart, Brain, Shield, Info } from "lucide-react";
 
 export default function InsightModal({ insight, modelsUsed, onClose }) {
-  const modalRef = useRef(null);
-  const previousActiveElement = useRef(null);
-
-  // AHCI: Focus trap and keyboard navigation
-  useEffect(() => {
-    // Store the element that opened the modal
-    previousActiveElement.current = document.activeElement;
-    
-    // Focus the modal when opened
-    modalRef.current?.focus();
-    
-    // Prevent body scroll
-    document.body.style.overflow = "hidden";
-    
-    const handler = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-      // Trap focus within modal
-      if (e.key === "Tab") {
-        const focusableElements = modalRef.current?.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusableElements?.length) {
-          const firstElement = focusableElements[0];
-          const lastElement = focusableElements[focusableElements.length - 1];
-          
-          if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      }
-    };
-    
-    window.addEventListener("keydown", handler);
-    return () => {
-      window.removeEventListener("keydown", handler);
-      document.body.style.overflow = "";
-      // Restore focus
-      previousActiveElement.current?.focus();
-    };
-  }, [onClose]);
+  const modalRef = useModalA11y(Boolean(insight), onClose);
 
   if (!insight) return null;
 
@@ -89,7 +44,7 @@ export default function InsightModal({ insight, modelsUsed, onClose }) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-title"
+      aria-labelledby="insight-modal-title"
     >
       {/* Backdrop */}
       <div 
@@ -113,7 +68,7 @@ export default function InsightModal({ insight, modelsUsed, onClose }) {
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h2 id="modal-title" className="font-bold text-warm-800">
+                <h2 id="insight-modal-title" className="font-bold text-warm-800">
                   AI Insight
                 </h2>
                 <p className="text-xs text-warm-500">Personalized Support Recommendations</p>

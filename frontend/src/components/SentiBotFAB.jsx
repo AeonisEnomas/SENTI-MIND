@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import SentiBotAvatar from "./SentiBotAvatar";
 
@@ -12,7 +12,6 @@ const AMBIENT_DIALOGUES = [
 
 const ROUTE_DIALOGUES = {
   "/dashboard": "Welcome to your Journal. This is a safe space to write down your thoughts. I'll analyze your entries to help you understand your emotional state.",
-  "/dashboard/": "Welcome to your Journal. This is a safe space to write down your thoughts. I'll analyze your entries to help you understand your emotional state.",
   "/dashboard/heatmap": "This is the Mood Heatmap. Here we can visualize your emotional journey over time through color patterns.",
   "/dashboard/history": "This is your History. You can review all your past entries and clinical analyses here.",
   "/dashboard/gratitude": "Welcome to the Gratitude Jar! Taking a moment to appreciate the little things does wonders for mental health.",
@@ -20,77 +19,101 @@ const ROUTE_DIALOGUES = {
   "/dashboard/wellness": "These are your Wellness Tools. Explore breathing exercises and grounding techniques to center yourself.",
 };
 
+const BUBBLE_MS = 5000;
+const AMBIENT_INTERVAL_MS = 20000;
+
+function routeDialogue(pathname) {
+  if (pathname.includes("/chat")) return null;
+  // Remove trailing slash for consistent matching
+  const normalized = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  return ROUTE_DIALOGUES[normalized] ?? null;
+}
+
+let bubbleSeq = 0;
+const makeBubble = (text, autoHide) => ({ id: ++bubbleSeq, text, autoHide });
+
 export default function SentiBotFAB({ emotion = null }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showDialogue, setShowDialogue] = useState(false);
-  const [dialogueText, setDialogueText] = useState(AMBIENT_DIALOGUES[0]);
+  // bubble: { id, text, autoHide } | null
+  const [bubble, setBubble] = useState(() => {
+    const text = routeDialogue(location.pathname);
+    return text ? makeBubble(text, true) : null;
+  });
+  const [lastPath, setLastPath] = useState(location.pathname);
+  const bubbleRef = useRef(bubble);
 
-  // Handle route change dialogues
+  // Route change dialogues (state adjusted during render, no effect needed).
+  if (lastPath !== location.pathname) {
+    setLastPath(location.pathname);
+    const text = routeDialogue(location.pathname);
+    if (text) setBubble(makeBubble(text, true));
+  }
+
   useEffect(() => {
-    // Only show if not on chat
-    if (location.pathname.includes("/chat")) return;
+    bubbleRef.current = bubble;
+  }, [bubble]);
 
-    // Remove trailing slash for consistent matching
-    const normalizedPath = location.pathname.endsWith("/") && location.pathname !== "/"
-      ? location.pathname.slice(0, -1)
-      : location.pathname;
+  // Auto-hide: one timer per bubble, always cleared when the bubble changes or on unmount.
+  useEffect(() => {
+    if (!bubble?.autoHide) return undefined;
+    const id = bubble.id;
+    const timer = setTimeout(() => {
+      setBubble((current) => (current?.id === id ? null : current));
+    }, BUBBLE_MS);
+    return () => clearTimeout(timer);
+  }, [bubble]);
 
-    const matchedText = ROUTE_DIALOGUES[normalizedPath];
-
-    if (matchedText) {
-      setDialogueText(matchedText);
-      setShowDialogue(true);
-      const timer = setTimeout(() => setShowDialogue(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname]);
-
-  // Ambient dialogue popups
+  // Ambient dialogue popups: one stable interval for the component's lifetime.
   useEffect(() => {
     const interval = setInterval(() => {
       // 30% chance to show a bubble every 20 seconds if not already showing
-      if (Math.random() > 0.7 && !showDialogue) {
-        setDialogueText(AMBIENT_DIALOGUES[Math.floor(Math.random() * AMBIENT_DIALOGUES.length)]);
-        setShowDialogue(true);
-        setTimeout(() => setShowDialogue(false), 5000);
-      }
-    }, 20000);
+      if (bubbleRef.current || Math.random() <= 0.7) return;
+      const text = AMBIENT_DIALOGUES[Math.floor(Math.random() * AMBIENT_DIALOGUES.length)];
+      const next = makeBubble(text, true);
+      setBubble((current) => current ?? next);
+    }, AMBIENT_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [showDialogue]);
+  }, []);
 
   // Hide on the chat page itself
   if (location.pathname.includes("/chat")) return null;
 
+  const showHoverBubble = () => setBubble(makeBubble("Chat with me!", false));
+  const hideBubble = () => setBubble(null);
+
   return (
     <div className="sentibot-fab animate-medical-fade-in" style={{ zIndex: 9999 }}>
-      {showDialogue && (
-        <div 
+      {bubble && (
+        <div
           className="sentibot-speech-bubble"
           onClick={() => navigate("/dashboard/chat")}
+          role="status"
+          aria-live="polite"
         >
-          {dialogueText}
+          {bubble.text}
         </div>
       )}
-      
+
       <div className="sentibot-fab-pulse" />
-      
-      <div 
-        className="sentibot-fab-inner" 
+
+      <button
+        type="button"
+        className="sentibot-fab-inner"
         onClick={() => navigate("/dashboard/chat")}
-        onMouseEnter={() => {
-          setDialogueText("Chat with me!");
-          setShowDialogue(true);
-        }}
-        onMouseLeave={() => setShowDialogue(false)}
+        onMouseEnter={showHoverBubble}
+        onMouseLeave={hideBubble}
+        onFocus={showHoverBubble}
+        onBlur={hideBubble}
         title="Chat with SentiBot"
+        aria-label="Chat with SentiBot"
       >
-        <SentiBotAvatar 
-          emotion={showDialogue ? "Normal" : (emotion || "idle")} 
-          size="md" 
-          animate={true} 
+        <SentiBotAvatar
+          emotion={bubble ? "Normal" : (emotion || "idle")}
+          size="md"
+          animate={true}
         />
-      </div>
+      </button>
     </div>
   );
 }

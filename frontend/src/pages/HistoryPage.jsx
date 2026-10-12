@@ -1,26 +1,66 @@
 import { useEffect, useState } from "react";
 import { getMoodTrends } from "../services/moodService";
 import { exportElementToPDF } from "../services/pdfService";
+import { getErrorMessage } from "../lib/errors";
+import { parseLocalDate } from "../lib/dates";
 
 export default function HistoryPage() {
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [exportError, setExportError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setLoadError(null);
+    setReloadKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    getMoodTrends(30).then(setTrends).finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    getMoodTrends(30)
+      .then((data) => {
+        if (!cancelled) setTrends(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Failed to load mood history:", err);
+        if (!cancelled) setLoadError(getErrorMessage(err, "We couldn't load your history."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
   const handleExport = async () => {
     setExporting(true);
+    setExportError(null);
     try {
       await exportElementToPDF("report-content", "sentimind-monthly-report");
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      setExportError("We couldn't create the PDF report. Please try again.");
     } finally {
       setExporting(false);
     }
   };
 
-  if (loading) return <div className="text-center py-10">Loading history...</div>;
+  if (loading) return <div className="text-center py-10" role="status">Loading history...</div>;
+
+  if (loadError) {
+    return (
+      <div className="max-w-md mx-auto text-center py-10 space-y-4" role="alert">
+        <p className="text-rose-700 font-medium">{loadError}</p>
+        <button type="button" onClick={handleRetry} className="medical-btn medical-btn-secondary px-5 py-2 text-sm">
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-medical-fade-in">
@@ -54,6 +94,12 @@ export default function HistoryPage() {
         </button>
       </div>
 
+      {exportError && (
+        <div className="p-4 bg-rose-50 text-rose-700 rounded-xl border border-rose-200 text-sm" role="alert">
+          {exportError}
+        </div>
+      )}
+
       <div className="bg-white/70 backdrop-blur-xl border border-sage-200/60 rounded-2xl shadow-sm p-4 sm:p-6 relative overflow-hidden">
         <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-sage-200/20 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -84,7 +130,7 @@ export default function HistoryPage() {
                    <div className="flex items-center gap-4 mb-2 sm:mb-0">
                      <span className="font-semibold text-warm-800 w-32 bg-warm-100/50 px-2 py-1 rounded-md text-sm text-center border border-warm-200/50 flex items-center justify-center gap-2">
                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                       {new Date(t.logged_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'})}
+                       {parseLocalDate(t.logged_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'})}
                      </span>
                      <span className="px-3 py-1 rounded-md text-xs font-bold bg-sage-100 text-sage-800 shadow-sm border border-sage-200/60 uppercase tracking-widest relative overflow-hidden inline-flex items-center gap-1.5">
                        <span className="w-1.5 h-1.5 rounded-full bg-sage-500 shadow-sm"></span>
