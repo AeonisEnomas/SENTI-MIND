@@ -1,11 +1,9 @@
 ANXIETY = [
     "My heart races when I think about going to work tomorrow",
     "I can't stop worrying about things that haven't happened yet",
-    "I feel a constant sense of dread that won't go away",
     "I had a panic attack in the grocery store yesterday",
     "I overthink every conversation I have and replay it for hours",
     "My hands shake when I'm in social situations",
-    "I avoid crowded places because they make me panic",
     "I can't sleep because my mind won't stop racing",
     "I'm terrified of making mistakes at work",
     "I check the door lock five times before I can leave the house",

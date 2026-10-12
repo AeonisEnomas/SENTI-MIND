@@ -1,6 +1,5 @@
 SUICIDAL = [
     # Direct Intent & Final Goodbyes
-    "I want to end my life I can't take this anymore",
     "I've been thinking about suicide every day",
     "I have a plan to kill myself",
     "I'm going to end it all soon",
@@ -32,7 +31,6 @@ SUICIDAL = [
     "I've been googling how to leave a will without a lawyer",
     "I told a hotline I was going to kill myself",
     "I told my therapist I don't want to be alive",
-    "Nobody would miss me if I was gone",
     "I want to disappear permanently",
     "I feel like death is the only way to escape this pain",
     "I don't want to wake up tomorrow",
