@@ -1,49 +1,43 @@
 
-import re
-
-from app.core.constants import RISK_THRESHOLDS, SAFETY_PROTOCOL_THRESHOLD, CRISIS_KEYWORDS
-from app.core.preprocessing import has_negated_crisis
+from app.core.constants import (
+    CRISIS_TIER1_MIN_WEIGHT,
+    CRISIS_TIER2_MIN_WEIGHT,
+    RISK_THRESHOLDS,
+    SAFETY_PROTOCOL_THRESHOLD,
+)
+from app.core.crisis_detection import CrisisHit, find_crisis_hits
 
 HIGH_RISK_EMOTIONS = {"anger", "fear", "sadness", "disgust"}
 
-# Crisis keywords are imported from constants.py (single source of truth)
-# CRISIS_KEYWORDS contains all tiered keywords with severity weights.
-
-# Past-tense patterns that indicate recovery or historical context
-PAST_TENSE_PATTERNS = [
-    r"\b(used to|i was|i had|years ago|months ago|last year|in the past)\b.{0,30}\b(suicidal|suicide|depressed|self.?harm|kill myself)\b",
-    r"\b(suicidal|suicide|depressed|self.?harm)\b.{0,30}\b(years ago|months ago|last year|in the past|used to|i was|recovered|better now)\b",
-    r"\b(no longer|not anymore|overcame|recovered from|got over)\b.{0,20}\b(suicidal|suicide|depressed|self.?harm)\b",
-]
-_PAST_TENSE_RES = [re.compile(p, re.IGNORECASE) for p in PAST_TENSE_PATTERNS]
+# Crisis keywords live in constants.py (single source of truth). Matching,
+# negation and past-tense handling live in core/crisis_detection.py and are
+# evaluated per keyword occurrence.
 
 
-def _is_past_tense_context(text: str) -> bool:
-    for pat in _PAST_TENSE_RES:
-        if pat.search(text):
-            return True
-    return False
+def _summarise_hits(hits: list[CrisisHit]) -> tuple[list[str], float, float]:
+    """Return (trigger labels, keyword score, max weight of active hits).
+
+    Each keyword is reported once, using its most severe reading:
+    active > past > negated.
+    """
+    rank = {"active": 0, "past": 1, "negated": 2}
+    best: dict[str, str] = {}
+    keyword_score = 0.0
+    active_weight = 0.0
+    for h in hits:
+        state = "active" if h.active else ("negated" if h.negated else "past")
+        if h.keyword not in best or rank[state] < rank[best[h.keyword]]:
+            best[h.keyword] = state
+        keyword_score = max(keyword_score, h.effective_weight)
+        if h.active:
+            active_weight = max(active_weight, h.weight)
+
+    triggers = [kw if state == "active" else f"{kw} ({state})" for kw, state in best.items()]
+    return triggers, min(keyword_score, 1.0), active_weight
 
 
 def assess_risk(text: str, emotions: list[dict], clinical: dict) -> dict:
-    text_lower = text.lower()
-
-    triggers = []
-    keyword_score = 0.0
-    for kw, weight in CRISIS_KEYWORDS.items():
-        if kw in text_lower:
-            triggers.append(kw)
-            keyword_score = max(keyword_score, weight)
-
-    if triggers and has_negated_crisis(text):
-        keyword_score *= 0.15
-        triggers = [f"{t} (negated)" for t in triggers]
-
-    if triggers and _is_past_tense_context(text):
-        keyword_score *= 0.2
-        triggers = [f"{t} (past)" if "(negated)" not in t else t for t in triggers]
-
-    keyword_score = min(keyword_score, 1.0)
+    triggers, keyword_score, active_weight = _summarise_hits(find_crisis_hits(text))
 
     emotion_score = 0.0
     if emotions:
@@ -54,7 +48,7 @@ def assess_risk(text: str, emotions: list[dict], clinical: dict) -> dict:
         emotion_score = min(emotion_score / 1.5, 1.0)
 
     suicidal_conf = 0.0
-    for item in clinical.get("top_categories", []):
+    for item in clinical.get("top_categories", []) or []:
         if item["category"].lower() == "suicidal":
             suicidal_conf = item["confidence"]
             break
@@ -68,11 +62,19 @@ def assess_risk(text: str, emotions: list[dict], clinical: dict) -> dict:
     else:
         risk_score = suicidal_conf * 0.45 + emotion_score * 0.30 + keyword_score * 0.25
 
+    # Keyword floors: a present, non-negated crisis phrase can never be
+    # out-voted by the classifier or the emotion model.
+    tier1_hit = active_weight >= CRISIS_TIER1_MIN_WEIGHT
+    if tier1_hit:
+        risk_score = max(risk_score, RISK_THRESHOLDS["high"])
+    elif active_weight >= CRISIS_TIER2_MIN_WEIGHT:
+        risk_score = max(risk_score, RISK_THRESHOLDS["medium"])
+    elif active_weight > 0:
+        risk_score = max(risk_score, RISK_THRESHOLDS["low"])
+
     risk_score = round(float(min(risk_score, 1.0)), 4)
 
-    safety_protocol = suicidal_conf >= SAFETY_PROTOCOL_THRESHOLD
-
-    if safety_protocol or risk_score >= RISK_THRESHOLDS["high"]:
+    if suicidal_conf >= SAFETY_PROTOCOL_THRESHOLD or tier1_hit or risk_score >= RISK_THRESHOLDS["high"]:
         level = "critical"
     elif risk_score >= RISK_THRESHOLDS["medium"]:
         level = "high"
@@ -80,6 +82,8 @@ def assess_risk(text: str, emotions: list[dict], clinical: dict) -> dict:
         level = "medium"
     else:
         level = "low"
+
+    safety_protocol = suicidal_conf >= SAFETY_PROTOCOL_THRESHOLD or tier1_hit or level == "critical"
 
     return {
         "level": level,

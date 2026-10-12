@@ -145,16 +145,15 @@ def add_crisis_markers(text: str) -> str:
 
 
 def has_negated_crisis(text: str) -> bool:
-    text_lower = text.lower()
-    # Quick patterns for negated crisis language
-    negated_patterns = [
-        r"\b(not|no|never|don'?t|doesn'?t|didn'?t|isn'?t|aren'?t|wasn'?t|am not)\b.{0,15}\b(suicidal|suicide|kill myself|end my life|want to die|self.?harm)\b",
-        r"\b(suicidal|suicide)\b.{0,10}\b(not|no|never)\b",
-    ]
-    for pat in negated_patterns:
-        if re.search(pat, text_lower):
-            return True
-    return False
+    """True if any crisis-keyword occurrence is directly negated in its clause.
+
+    Negation is judged per occurrence (see core/crisis_detection.py), so
+    "No, I want to die" and "I don't know why I want to die" are not negated.
+    """
+    # Imported lazily so preprocess() keeps no dependency on this module.
+    from app.core.crisis_detection import find_crisis_hits
+
+    return any(h.negated for h in find_crisis_hits(text))
 
 
 def preprocess(text: str) -> str:
