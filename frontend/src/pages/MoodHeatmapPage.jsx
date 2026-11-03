@@ -135,7 +135,7 @@ export default function MoodHeatmapPage() {
           </div>
           
           <div className="mt-8 pt-6 border-t border-sage-200/50 flex justify-between items-center relative z-10">
-            <span className="text-xs font-bold text-sage-500 uppercase tracking-widest">Model: BioMegatron</span>
+            <span className="text-xs font-bold text-sage-500 uppercase tracking-widest">Engine: Rule-Based Trends</span>
             <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Active
             </span>

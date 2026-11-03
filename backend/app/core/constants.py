@@ -1,14 +1,16 @@
 
 
-# Mental Health Categories (7-class clinical classification)
+# Mental Health Categories (5-class reflective classification)
+# Bipolar and Personality Disorder were removed: short journal texts do not carry
+# enough information to distinguish them (even transformers systematically confuse
+# them), so keeping them trained a confident-sounding fiction. Do not re-add classes
+# without retraining AND re-validating on real held-out data.
 MENTAL_HEALTH_CATEGORIES = [
     "Anxiety",
     "Depression",
     "Suicidal",
     "Stress",
-    "Bipolar",
     "Normal",
-    "Personality Disorder",
 ]
 
 # Risk Assessment Thresholds

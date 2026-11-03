@@ -33,6 +33,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import joblib
+import itertools
+from collections import Counter, defaultdict
+
 import numpy as np
 import pandas as pd
 import sklearn
@@ -60,7 +63,7 @@ from eval_cases import ADVERSARIAL_CASES, jaccard, normalize_sentence, tokens  #
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-MODEL_VERSION = "v5"
+MODEL_VERSION = "v7"
 RANDOM_STATE = 42
 NEAR_DUP_JACCARD = 0.6
 TEST_FOLDS = 5  # 1 of 5 group-stratified folds is held out -> ~20% test
@@ -69,8 +72,20 @@ CV_FOLDS = 5
 DATA_DIR = PROJECT_ROOT / "data"
 CSV_PATH = DATA_DIR / "Combined Data.csv"
 MODEL_PATH = DATA_DIR / "sentiment_model.joblib"
-VECTORIZER_PATH = DATA_DIR / "vectorizer.joblib"
 METADATA_PATH = DATA_DIR / "model_metadata.json"
+
+
+def external_provenance(csv_path: Path):
+    """Return the .manifest.json written by ingest_external.py next to a merged CSV, or None."""
+    manifest = csv_path.with_suffix(csv_path.suffix + ".manifest.json")
+    if not manifest.exists():
+        return None
+    try:
+        return json.loads(manifest.read_text())
+    except Exception as exc:  # malformed manifest: say so, don't crash the training run
+        logger.warning("Could not read %s: %s — treating training data as synthetic", manifest, exc)
+        return None
+VECTORIZER_PATH = DATA_DIR / "vectorizer.joblib"
 
 
 # ---------------------------------------------------------------------------
@@ -119,9 +134,18 @@ def load_data(csv_path: Path) -> pd.DataFrame:
 
 
 def near_duplicate_groups(texts: list[str], threshold: float) -> np.ndarray:
-    """Union-find over all pairs with token Jaccard >= threshold."""
+    """Union-find over token-Jaccard >= threshold pairs.
+
+    All-pairs is O(n^2) and infeasible beyond a few thousand docs, so for large
+    inputs we use blocking: each document is indexed by its k rarest signature
+    tokens (by corpus document frequency), and only pairs sharing at least
+    _MIN_SHARED of them are verified with an exact Jaccard. A pair with
+    Jaccard >= 0.6 (sharing ~60% of the smaller token set) essentially always
+    survives the filter. Brute force is used on small inputs where it's cheap.
+    """
+    n = len(texts)
     toks = [tokens(t) for t in texts]
-    parent = list(range(len(toks)))
+    parent = list(range(n))
 
     def find(x: int) -> int:
         while parent[x] != x:
@@ -129,28 +153,80 @@ def near_duplicate_groups(texts: list[str], threshold: float) -> np.ndarray:
             x = parent[x]
         return x
 
-    for i in range(len(toks)):
-        a = toks[i]
-        for j in range(i + 1, len(toks)):
-            if jaccard(a, toks[j]) >= threshold:
-                ri, rj = find(i), find(j)
-                if ri != rj:
-                    parent[ri] = rj
+    candidate_pairs = itertools.combinations(range(n), 2) if n <= 4000 else _candidate_pairs(toks)
+    for i, j in candidate_pairs:
+        if jaccard(toks[i], toks[j]) >= threshold:
+            ri, rj = find(i), find(j)
+            if ri != rj:
+                parent[ri] = rj
 
-    roots = [find(i) for i in range(len(toks))]
+    roots = [find(i) for i in range(n)]
     _, groups = np.unique(roots, return_inverse=True)
     return groups
 
 
+_SIGNATURE_SIZE = 8
+_POSTINGS_CAP = 4_000  # ignore tokens present in >~8% of docs — useless for discrimination
+_MIN_SHARED = 2
+
+
+def _rare_signature(toks: list[frozenset[str]]):
+    """Corpus document frequency + per-document rarest-token signature."""
+    df_count: Counter = Counter()
+    for ts in toks:
+        df_count.update(ts)
+    sigs = [frozenset(sorted(ts, key=lambda t: df_count[t])[:_SIGNATURE_SIZE]) for ts in toks]
+    return df_count, sigs
+
+
+def _candidate_pairs(toks: list[frozenset[str]]):
+    """Pairs sharing >= _MIN_SHARED signature tokens (blocking)."""
+    _, sigs = _rare_signature(toks)
+    inv: dict[str, list[int]] = defaultdict(list)
+    for i, sig in enumerate(sigs):
+        for t in sig:
+            inv[t].append(i)
+    shared: Counter = Counter()
+    for ids in inv.values():
+        if len(ids) < 2 or len(ids) > _POSTINGS_CAP:
+            continue
+        for a, b in itertools.combinations(ids, 2):
+            shared[(a, b)] += 1
+    return [(i, j) for (i, j), n in shared.items() if n >= _MIN_SHARED]
+
+
 def leakage_stats(train_texts, test_texts, threshold: float) -> dict:
-    """How many test rows have a near-duplicate (or exact duplicate) in train."""
+    """How many test rows have a near-duplicate (or exact duplicate) in train.
+
+    Uses the same rare-token blocking as near_duplicate_groups when the pair space
+    is large; the max-similarity is then measured over a blocked candidate set, which
+    can slightly understate pathological rare misses — acceptable for a leakage
+    *statistic* (and exact for the exact-duplicate check, which is hash-based).
+    """
     train_toks = [tokens(t) for t in train_texts]
     train_norm = {normalize_sentence(t) for t in train_texts}
-    max_sims = []
-    for t in test_texts:
-        tt = tokens(t)
-        max_sims.append(max((jaccard(tt, tr) for tr in train_toks), default=0.0))
-    max_sims = np.array(max_sims)
+    if len(train_toks) * len(test_texts) <= 4_000_000:
+        def max_sim_fn(tt):
+            return max((jaccard(tt, tr) for tr in train_toks), default=0.0)
+    else:
+        df_count, train_sigs = _rare_signature(train_toks)
+        inv: dict[str, list[int]] = defaultdict(list)
+        for i, sig in enumerate(train_sigs):
+            for t in sig:
+                inv[t].append(i)
+
+        def max_sim_fn(tt):
+            probe = sorted(tt, key=lambda t: df_count[t])[:_SIGNATURE_SIZE]
+            cand: Counter = Counter()
+            for t in probe:
+                for i in inv.get(t, []):
+                    cand[i] += 1
+            cand = {i for i, n in cand.items() if n >= _MIN_SHARED}
+            if not cand:
+                return 0.0
+            return max(jaccard(tt, train_toks[i]) for i in cand)
+
+    max_sims = np.array([max_sim_fn(tokens(t)) for t in test_texts])
     exact = sum(normalize_sentence(t) in train_norm for t in test_texts)
     stats = {
         "test_rows": int(len(test_texts)),
@@ -235,10 +311,13 @@ def train() -> None:
     logger.info("SENTI-MIND Model Training %s", MODEL_VERSION)
     logger.info("=" * 70)
 
-    if not CSV_PATH.exists():
-        sys.exit(f"{CSV_PATH} not found. Run `cd scripts && python generate_training_data.py` first.")
+    # Optional argv[1]: path to a (merged) training CSV produced by ingest_external.py.
+    # Default: the synthetic pools regenerated by generate_training_data.py.
+    csv_path = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else CSV_PATH
+    if not csv_path.is_file():
+        sys.exit(f"{csv_path} not found. Run `cd scripts && python generate_training_data.py` first.")
 
-    df = load_data(CSV_PATH)
+    df = load_data(csv_path)
     texts = df["statement"].tolist()
 
     logger.info("Clustering near-duplicates (token Jaccard >= %.2f)...", NEAR_DUP_JACCARD)
@@ -332,6 +411,38 @@ def train() -> None:
     logger.info("Saved vectorizer -> %s", VECTORIZER_PATH)
     logger.info("Saved classifier -> %s", MODEL_PATH)
 
+    ext = external_provenance(csv_path)
+    if ext:
+        external_rows = ext.get("external_rows", "unknown number of")
+        source = f"Mixed: synthetic pools (scripts/training_data/) + real-world data: {', '.join(ext.get('sources', []))}"
+        caveats = [
+            f"{external_rows} external rows carry weak-supervision labels (subreddit-of-origin, not clinical assessment). "
+            f"Licenses/terms: {ext.get('license_note', 'research use only')}. Attribution: {'; '.join(ext.get('attribution', []))}.",
+            "Synthetic pool rows do not reflect real-world language; metrics are dominated by whichever source is larger.",
+            "The model is not clinically validated and must not be used for diagnosis.",
+            "Calibration inside CalibratedClassifierCV uses ungrouped 3-fold CV.",
+        ]
+    else:
+        source = "synthetic, hand-written sentence pools in scripts/training_data/ (not clinical data)"
+        caveats = [
+            "Synthetic, template-generated sentences; metrics do not reflect real-world or clinical performance.",
+            "The model is not clinically validated and must not be used for diagnosis.",
+            "Calibration inside CalibratedClassifierCV uses ungrouped 3-fold CV.",
+        ]
+    if ext:
+        data_block = {
+            "source": source,
+            "samples_total": int(len(df)),
+            "class_counts": {k: int(v) for k, v in df["status"].value_counts().sort_index().items()},
+            "external": ext,
+        }
+    else:
+        data_block = {
+            "source": source,
+            "samples_total": int(len(df)),
+            "class_counts": {k: int(v) for k, v in df["status"].value_counts().sort_index().items()},
+        }
+
     metadata = {
         "model_version": MODEL_VERSION,
         "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -343,15 +454,11 @@ def train() -> None:
         },
         "git": git_commit(),
         "sha256": {
-            "training_csv": sha256_file(CSV_PATH),
+            "training_csv": sha256_file(csv_path),
             "sentiment_model.joblib": sha256_file(MODEL_PATH),
             "vectorizer.joblib": sha256_file(VECTORIZER_PATH),
         },
-        "data": {
-            "source": "synthetic, hand-written sentence pools in scripts/training_data/ (not clinical data)",
-            "samples_total": int(len(df)),
-            "class_counts": {k: int(v) for k, v in df["status"].value_counts().sort_index().items()},
-        },
+        "data": data_block,
         "evaluation": {
             "split_method": (
                 f"StratifiedGroupKFold(n_splits={TEST_FOLDS}, shuffle=True, random_state={RANDOM_STATE}); "
@@ -374,11 +481,7 @@ def train() -> None:
                 "random_split_reference": leak_random,
                 "adversarial_vs_train": leak_adv,
             },
-            "caveats": [
-                "Synthetic, template-generated sentences; metrics do not reflect real-world or clinical performance.",
-                "The model is not clinically validated and must not be used for diagnosis.",
-                "Calibration inside CalibratedClassifierCV uses ungrouped 3-fold CV.",
-            ],
+            "caveats": caveats,
         },
         "samples_train": int(len(train_idx)),
         "samples_test": int(len(test_idx)),

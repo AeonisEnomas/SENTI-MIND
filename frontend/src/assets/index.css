@@ -645,17 +645,6 @@ body {
   animation: sentibot-heavy-anim 6s ease-in-out infinite;
 }
 
-/* ─── Color cycling (bipolar) ─── */
-@keyframes sentibot-cycle-anim {
-  0%, 100% { transform: scale(1); filter: hue-rotate(0deg); }
-  25% { transform: scale(1.03); filter: hue-rotate(20deg); }
-  50% { transform: scale(0.97); filter: hue-rotate(-15deg); }
-  75% { transform: scale(1.01); filter: hue-rotate(10deg); }
-}
-.sentibot-cycle {
-  animation: sentibot-cycle-anim 4s ease-in-out infinite;
-}
-
 /* ─── Alert pulse (suicidal) ─── */
 @keyframes sentibot-alert-anim {
   0%, 100% { transform: scale(1); }
@@ -671,16 +660,6 @@ body {
 }
 .sentibot-alert-ring {
   animation: sentibot-alert-ring-anim 1.5s ease-in-out infinite;
-}
-
-/* ─── Split effect (personality disorder) ─── */
-@keyframes sentibot-split-anim {
-  0%, 100% { transform: scaleX(1); }
-  25% { transform: scaleX(1.02) skewX(1deg); }
-  75% { transform: scaleX(0.98) skewX(-1deg); }
-}
-.sentibot-split {
-  animation: sentibot-split-anim 3.5s ease-in-out infinite;
 }
 
 /* ─── Natural Eye blink (lively idle) ─── */
@@ -722,26 +701,6 @@ body {
 }
 .sentibot-tear {
   animation: sentibot-tear-anim 2.5s ease-in infinite;
-}
-
-/* ─── Pupil shift (bipolar shifting eyes) ─── */
-@keyframes sentibot-pupil-shift-anim {
-  0%, 100% { transform: translateX(0); }
-  30% { transform: translateX(3px); }
-  60% { transform: translateX(-3px); }
-}
-.sentibot-pupil-shift {
-  animation: sentibot-pupil-shift-anim 3s ease-in-out infinite;
-}
-
-/* ─── Mouth shift (bipolar mixed) ─── */
-@keyframes sentibot-mouth-shift-anim {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(-1) translateY(-6px); }
-}
-.sentibot-mouth-shift {
-  animation: sentibot-mouth-shift-anim 4s ease-in-out infinite;
-  transform-origin: center;
 }
 
 /* ─── Wavy mouth (anxiety) ─── */

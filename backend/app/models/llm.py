@@ -2,6 +2,7 @@ import logging
 import re
 
 from app.services import openrouter
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ def _sanitize_user_text(text: str) -> str:
 
 
 def _build_prompt(text: str, emotions: list, clinical: dict, risk: dict) -> str:
-    top_emotions = ", ".join(f"{e['label']} ({e['score']:.0%})" for e in emotions[:3])  # type: ignore
+    top_emotions = ", ".join(f"{e['label']} ({e['score']:.0%})" for e in emotions[:3]) if emotions else "unavailable"
     category = clinical.get("category", "Unknown")
     category_conf = clinical.get("confidence", 0.0)
     risk_level = risk.get("level", "low")
@@ -73,7 +74,10 @@ async def generate_insight(text: str, emotions: list, clinical: dict, risk: dict
 
     try:
         prompt = _build_prompt(text, emotions, clinical, risk)
-        return await openrouter.chat_completion([{"role": "user", "content": prompt}])
+        return await openrouter.chat_completion(
+            [{"role": "user", "content": prompt}],
+            temperature=settings.OPENROUTER_INSIGHT_TEMPERATURE,
+        )
     except Exception as exc:
         logger.exception("OpenRouter insight generation failed: %s", exc)
         return _fallback_insight(clinical), None

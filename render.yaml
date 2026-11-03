@@ -1,0 +1,32 @@
+# Render Blueprint for the SentiMind backend. Optional — you can also create the
+# service manually in the dashboard (env var values marked `sync: false` must be
+# filled in there). Free plan: 0.1 CPU / 512 MB, spins down after ~15 min idle,
+# ~1 min cold start, 750 instance-hours/month, ephemeral filesystem.
+services:
+  - type: web
+    name: sentimind-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: ALLOWED_ORIGINS
+        sync: false # e.g. https://senti-mind-mocha.vercel.app
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false # anon public key — never the service-role key
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # Defaults from app/core/config.py are already free slugs with a fallback chain.
+      # Override here only to swap models without a redeploy.
+      - key: OPENROUTER_MODEL
+        sync: false
+      - key: OPENROUTER_CHAT_MODEL
+        sync: false
+      - key: OPENROUTER_FALLBACK_MODEL
+        sync: false

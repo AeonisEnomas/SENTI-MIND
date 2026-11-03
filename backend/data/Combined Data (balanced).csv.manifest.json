@@ -1,0 +1,22 @@
+{
+  "created_at": "2026-11-03T11:10:36+00:00",
+  "merged_with_synthetic_pool": true,
+  "sources": [
+    "SWMH (Ji et al., 2022; Reddit; CC-BY-NC)",
+    "Dreaddit (Turcan & McKeown, 2019; Reddit; research use; official Columbia distribution)"
+  ],
+  "attribution": [
+    "Ji, S., Li, X., Huang, Z. & Cambria, E. (2022). Suicidal ideation and mental disorder detection with attentive relation networks. Neural Computing and Applications, 32.",
+    "Turcan, E. & McKeown, K. (2019). Dreaddit: A Reddit dataset for stress analysis in social media. Proc. 5th Workshop on Noisy User-generated Text (W-NUT), 97\u2013107."
+  ],
+  "license_note": "SWMH is CC-BY-NC and research-use only. Dreaddit is research-use. Neither is clinical ground truth and both are non-commercial; do NOT use the trained model commercially, and do NOT present metrics as clinical validation.",
+  "external_rows": 50175,
+  "class_counts": {
+    "Depression": 6000,
+    "Anxiety": 6000,
+    "Normal": 6000,
+    "Suicidal": 6000,
+    "Stress": 2471
+  },
+  "balancing": "downsampled classes with > 6000 rows to 6000 (seed 314) for class balance"
+}

@@ -7,6 +7,7 @@ from app.models.schemas import (
     EntityResult, RiskAssessment, ModelUsed
 )
 from app.models.classifier import classifier
+from app.models import emotions as emotion_model
 from app.models.emotions import detect_emotions
 from app.models.llm import generate_insight
 from app.services.ner import extract_entities
@@ -71,16 +72,27 @@ async def analyze_text(
         # Generate insights using LLM
         insight, llm_details = await generate_insight(cleaned_text, raw_emotions, raw_clinical, raw_risk)
 
-        # Track model usage metadata
-        models_used = [
-            ModelUsed(
+        # Track model usage metadata. Report provenance honestly: if the emotion
+        # pipeline was unavailable (e.g. model not downloaded), say so.
+        if raw_emotions:
+            emotion_entry = ModelUsed(
                 name="j-hartmann/emotion-english-distilroberta-base",
                 type="emotion",
-                provider="huggingface",
-                details={"api_endpoint": "router.huggingface.co"}
-            ),
+                provider="local" if emotion_model.last_backend() == "local-onnx" else "huggingface",
+                details={"backend": emotion_model.last_backend() or "local-onnx"},
+            )
+        else:
+            emotion_entry = ModelUsed(
+                name="j-hartmann/emotion-english-distilroberta-base",
+                type="emotion",
+                provider="local",
+                details={"status": "unavailable"},
+            )
+        models_used = [
+            emotion_entry,
             ModelUsed(
-                name="ClinicalClassifier v3 (LinearSVC TF-IDF)",
+                name=f"ClinicalClassifier {getattr(classifier, 'model_version', 'v?')} "
+                     f"({getattr(classifier, 'MODEL_DESCRIPTION', 'unknown')})",
                 type="clinical",
                 provider="local",
             )

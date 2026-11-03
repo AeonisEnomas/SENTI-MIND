@@ -44,8 +44,18 @@ const EMOTION_LABELS = {
 };
 
 export default function EmotionChart({ emotions }) {
+  // Emotion analysis is honest when unavailable — never show fabricated scores.
+  if (!Array.isArray(emotions) || emotions.length === 0) {
+    return (
+      <div className="rounded-2xl border border-warm-200 bg-warm-50 p-6 text-center">
+        <p className="text-warm-600 font-medium">Emotion analysis is temporarily unavailable.</p>
+        <p className="text-xs text-warm-500 mt-2">The rest of your analysis is unaffected.</p>
+      </div>
+    );
+  }
+
   // Get dominant emotion
-  const dominantEmotion = emotions[0] || { label: "neutral", score: 0 };
+  const dominantEmotion = emotions[0];
   const dominantColor = EMOTION_COLORS[dominantEmotion.label] || EMOTION_COLORS.neutral;
   const dominantIcon = EMOTION_ICONS[dominantEmotion.label] || "😐";
   const dominantLabel = EMOTION_LABELS[dominantEmotion.label] || dominantEmotion.label;

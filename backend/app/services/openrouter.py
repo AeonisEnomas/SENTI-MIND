@@ -45,7 +45,10 @@ def is_configured() -> bool:
 
 
 async def chat_completion(
-    messages: list[dict], model: str | None = None, max_tokens: int | None = None
+    messages: list[dict],
+    model: str | None = None,
+    max_tokens: int | None = None,
+    temperature: float | None = None,
 ) -> tuple[str, dict]:
     """Send OpenAI-style messages to OpenRouter. Returns (text, {"model", "usage"})."""
     if not is_configured():
@@ -56,12 +59,19 @@ async def chat_completion(
         "Content-Type": "application/json",
         "X-Title": settings.APP_NAME,
     }
+    primary = model or settings.OPENROUTER_MODEL
     # Always cap max_tokens: without it OpenRouter reserves credit for the model's full output limit.
     body = {
-        "model": model or settings.OPENROUTER_MODEL,
+        "model": primary,
         "messages": messages,
         "max_tokens": max_tokens or settings.OPENROUTER_MAX_TOKENS,
+        "temperature": temperature if temperature is not None else settings.OPENROUTER_TEMPERATURE,
     }
+    # Automatic fallback chain: OpenRouter routes to the next model if the primary is
+    # unavailable (429/5xx/retired slug). Free-tier capacity vanishes without notice.
+    fallback = getattr(settings, "OPENROUTER_FALLBACK_MODEL", "")
+    if fallback and fallback != primary:
+        body["models"] = [primary, fallback]
 
     response = await _get_client().post(OPENROUTER_URL, headers=headers, json=body)
 

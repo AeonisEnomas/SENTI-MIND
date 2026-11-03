@@ -1,19 +1,17 @@
 # SENTI-MIND
 
-**SentiMind** is an intelligent AI-powered mental health companion designed to analyze text and detect emotional states, clinical risks (depression, anxiety, stress, bipolar disorder, personality disorders, and suicidal ideation), and provide empathetic, actionable guidance. It features a comprehensive tracking system to monitor your mental wellness journey over time.
+**SentiMind** is an intelligent AI-powered mental health companion designed to analyze text and detect emotional states, clinical indicators (depression, anxiety, stress, and suicidal ideation), and provide empathetic, actionable guidance. It features a comprehensive tracking system to monitor your mental wellness journey over time.
 
 ## 📋 Features
 
 ### Core Analysis Pipeline
 1. **Text Preprocessing**: Removes noise, normalizes text, and translates emojis into meaningful words
-2. **Emotion Detection**: Uses HuggingFace's j-hartmann/emotion-english-distilroberta-base model to detect 7 emotions (anger, disgust, fear, joy, neutral, sadness, surprise)
-3. **Clinical Classification**: Custom-trained LinearSVC machine learning model identifies clinical indicators:
+2. **Emotion Detection**: Local ONNX export of HuggingFace's j-hartmann/emotion-english-distilroberta-base (7 emotions: anger, disgust, fear, joy, neutral, sadness, surprise) — no API token, no per-call cost
+3. **Clinical Classification**: Local fine-tuned transformer (distilroberta, INT8 ONNX) — also a calibrated LinearSVC fallback — identifies clinical indicators:
    - Depression
    - Anxiety
    - Suicidal ideation
    - Stress
-   - Bipolar disorder
-   - Personality disorder
    - Normal/Healthy
 4. **Risk Assessment**: Real-time crisis keyword detection for immediate intervention
 5. **AI-Powered Insights**: LLM generates warm, empathetic responses with actionable coping strategies
@@ -50,7 +48,7 @@ Exact versions are pinned in `backend/requirements.txt` (runtime),
 - **Framework**: FastAPI, served by Uvicorn
 - **Validation / settings**: Pydantic 2, pydantic-settings
 - **NLP**: spaCy 3.8 with `en_core_web_sm` (installed from `requirements.txt`)
-- **ML**: scikit-learn 1.8.0 (calibrated LinearSVC over TF-IDF), joblib, numpy. The scikit-learn pin must match the version the model artifacts were trained with.
+- **ML**: scikit-learn 1.8.0 (calibrated LinearSVC over TF-IDF, v7 fallback), onnxruntime (v8 transformer inference), joblib, numpy
 - **Database & auth**: Supabase Python client (JWTs are verified through Supabase; queries run under Row-Level Security)
 - **HTTP client**: httpx
 - **Testing**: pytest, pytest-asyncio
@@ -58,7 +56,7 @@ Exact versions are pinned in `backend/requirements.txt` (runtime),
 
 ### AI/ML Components
 - **Emotion Detection**: HuggingFace Inference API (j-hartmann/emotion-english-distilroberta-base)
-- **Clinical Classifier**: Custom-trained LinearSVC with TF-IDF features
+- **Clinical Classifier**: v8 — distilroberta fine-tuned on the balanced SWMH+Dreaddit corpus (INT8 ONNX, local); v7 — calibrated LinearSVC with TF-IDF (shipped as fallback;`CLASSIFIER_BACKEND=sklearn|auto|onnx`)
 - **LLM Insights & Chat Agent**: OpenRouter API (default `google/gemini-3.1-flash-lite-preview`, configurable via `OPENROUTER_MODEL`)
 - **NER (Named Entity Recognition)**: spaCy pipeline
 
@@ -76,6 +74,19 @@ Exact versions are pinned in `backend/requirements.txt` (runtime),
 ### 🌍 Live Application (Deployed)
 Access the fully functional app instantly without installation:
 👉 **[SentiMind Live Web App](https://senti-mind-mocha.vercel.app/)**
+
+### ☁️ Deploying for $0 (Vercel + Render + Supabase)
+
+The stack is designed to run entirely on free tiers:
+
+1. **Supabase** (auth + Postgres): free project. The `pg_cron` keep-alive job already prevents the 7-day inactivity pause; keep it enabled. Use the **anon public key**, never the service-role key.
+2. **Render** (FastAPI backend): free web service, Docker runtime with `rootDir: backend` (`backend/Dockerfile` bakes the local ONNX emotion model in at build time — no HuggingFace token needed). Set `ENVIRONMENT=production`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`, and `ALLOWED_ORIGINS=https://<your-vercel-app>.vercel.app`. `render.yaml` is a ready-made Blueprint. Health check path: `/health`.
+   - Native Python runtime works too — in that case set the Render **build command** to `pip install -r requirements.txt && python scripts/download_emotion_model.py`, or emotions will report themselves unavailable (by design, never fabricated).
+   - Free instance: 0.1 CPU / 512 MB, spins down after ~15 min idle (~1 min cold start), 750 instance-hours/month, ephemeral disk. `.github/workflows/keep-alive.yml` pings `/keepalive` every 10 min to keep it warm.
+3. **Vercel** (frontend): free Hobby tier. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_API_URL=https://<your-render-service>.onrender.com/api/v1`.
+4. After any deploy: confirm `https://<render-service>/health` returns `{"status":"ok"}` and `/keepalive` returns a `database: ok` payload.
+
+**Reality check:** this is a demo-grade deployment — cold starts, no SLA, rate-limited free LLM capacity, and every license in the stack (Vercel Hobby, CC-BY training data, free LLM slugs) is non-commercial. A public/commercial launch needs a paid Render instance (~$7/mo, no spin-down), paid model capacity, and commercially-licensed training data.
 
 ### 💻 Running Locally
 
@@ -205,61 +216,116 @@ Interactive API docs are served at `/docs` (disabled, along with `/redoc` and `/
 ## 🔬 Machine Learning Models
 
 ### Clinical Classifier Training
-The training data is **synthetic**: 3,841 unique hand-written / template-generated
-sentences in `backend/scripts/training_data/` (476–621 per class), across:
-- Depression
-- Anxiety
-- Suicidal ideation
-- Stress
-- Bipolar disorder
-- Personality disorder
-- Normal/Healthy
+The training data is **synthetic**: 2,779 unique hand-written / template-generated
+sentences in `backend/scripts/training_data/` (516–621 per class), across:
+- Depression (516)
+- Anxiety (561)
+- Suicidal ideation (524)
+- Stress (621)
+- Normal/Healthy (557)
+
+(Bipolar and Personality Disorder were removed in v6: short journal texts don't carry
+enough information to distinguish them — even transformer classifiers systematically
+confuse them.)
 
 Features engineered with:
-- **TF-IDF Vectorization**: 1–2 grams, 15K features (chosen by grid search)
+- **TF-IDF Vectorization**: 1–3 grams, 15K features (chosen by grid search)
 - **Negation Handling**: 3-word scoped negation (e.g., `not very happy` → `NEG_very NEG_happy`)
 - **Crisis Indicators**: Weighted crisis keywords and past-tense recovery context handling
 - **Class balancing**: `class_weight="balanced"`
 - **Calibration**: Sigmoid calibration for probability estimates
 
-### Evaluation (model v5)
-Many sentences are near-duplicates of each other (shared templates), so a random
-train/test split overstates accuracy: about 26% of random-split test rows have a
-≥60%-word-overlap twin in the training set. The evaluation therefore:
-- clusters near-duplicates (token Jaccard ≥ 0.6) into groups and holds out ~20% of the
-  data with `StratifiedGroupKFold`, so no group is split across train and test
-  (0 near-duplicates between them);
-- tunes hyper-parameters with group-aware 5-fold CV on the training split only;
-- keeps the 51 adversarial cases (`scripts/eval_cases.py`) and the sentences used in
-  `tests/test_classifier.py` out of the training data.
+### Evaluation (models v7 & v8)
 
-| Metric (held-out, group split) | Value |
-|---|---|
-| Macro F1 | 0.767 |
-| Accuracy | 0.773 |
-| Grouped 5-fold CV macro F1 (train split) | 0.759 ± 0.027 |
-| Adversarial spot-check | 46/51 (37/42 on cases with no near-duplicate in train) |
+The synthetic corpus caps the classifier, so v7 trains on **real-world text**:
+2,779 synthetic rows + 50,175 real Reddit rows (SWMH for Depression/Anxiety/Suicidal
+and offmychest→Normal; Dreaddit for Stress), downsampled per class to ≤6,000 for
+balance (25,471 unique rows after de-duplication; 19,059 train / 2,118 val / 5,294 test).
+Groups from token-Jaccard ≥ 0.6 near-duplicate clustering are never split across
+train/test (union-find over a rarest-token blocking index — all-pairs is infeasible
+at this size); hyper-parameter search uses group-aware 5-fold CV on the training
+split only. Caveats live in `model_metadata.json`: subreddit-membership labels are
+weak supervision, the sources are CC-BY-NC research-use only, and **the model is not
+clinically validated**.
 
-Per-class F1 ranges from 0.52 (Depression, often confused with Personality disorder
-and Bipolar) to 0.91 (Anxiety). Full metrics, the confusion matrix, leakage statistics,
-library versions, the git commit and SHA-256 hashes of the data and artifacts are in
-`backend/data/model_metadata.json`.
+**v8** (shipped by default when the ONNX artifacts are present,
+see `app/models/classifier_onnx/`) fine-tunes `distilroberta-base` on the *same*
+group-aware split (see `docs/FINE_TUNING.md` for the full recipe) and is what
+`CLASSIFIER_BACKEND=auto` selects:
+
+| Metric (held-out fold 0, both models) | v7 (sklearn) | **v8 (transformer ONNX)** |
+|---|---|---|
+| Macro F1 | 0.645 | **0.722** |
+| Accuracy | 0.664 | **0.714** |
+| Anxiety F1 | 0.78 | **0.82** |
+| Depression F1 | 0.56 | 0.57 |
+| Normal F1 | 0.64 | **0.69** |
+| Stress F1 | 0.53 | **0.80** |
+| Suicidal recall | 0.73 | **0.75** |
+| Adversarial spot-check | 29/39 | **30/39** |
+
+Per-class F1 wins where it matters most (Stress recall 0.44 → **0.85**); v8 is the
+default, v7 remains shipped as the sklearn fallback.
+
+> [!IMPORTANT]
+> v6's flattering numbers (macro F1 0.814, adversarial 35/39) were measured on
+> synthetic text the model was trained and tuned on — it scored **0.401 macro F1 on
+> real Reddit rows**. v7/v8's lower numbers are the honest cost of real data. Do not
+> quote v6-style figures for these artifacts.
+
+Known limitations (also in `DOCUMENTATION.md`):
+- v8 (raw text) reads distress priors hard: negation examples like
+  "I don't want to die, I just need a break" and "no longer depressed thanks to support"
+  are predicted as Suicidal/Depression respectively (over-alerting; the deterministic
+  crisis-keyword gate is unaffected by model choice). v7 handled these via
+  NEG_-scoped preprocessing.
+- v7/v8 Reddit priors would classify classroom discussion of suicide (e.g.
+  "we discussed suicide prevention in psych class") as distress — v8 gets that specific
+  one right, v7 does not.
+- Stress recall is weak for v7 (0.44); v8 lifts it to 0.85.
+- Reddit ≠ journal entries. These numbers are a proxy for, not a measurement of,
+  journal-writing performance.
 
 > [!WARNING]
-> These numbers measure performance on synthetic sentences that resemble the training
-> data. They say nothing about real-world text, and **the model is not clinically
-> validated**. Its output is a signal for the app's risk engine, not a diagnosis.
+> These numbers are weak-supervision community labels, not clinical ground truth, and
+> Reddit ≠ journal entries. The model is **not clinically validated**. Its output is a
+> signal for the app's risk engine, not a diagnosis.
 
 The previous README figures (87.1% macro F1, 96% adversarial) did not match the
 shipped v4 artifacts, whose own metadata reported 0.795 macro F1 and 43/51 on a random
 split with near-duplicate and verbatim eval-sentence leakage.
 
-To retrain (from `backend/`, with `requirements-train.txt` installed):
+The committed v7 artifacts were trained on the mixed corpus below — reproduce with:
 ```bash
-cd scripts && python generate_training_data.py && cd ..
-python scripts/train_model.py
+cd scripts && python generate_training_data.py && cd ..          # synthetic pool
+python scripts/ingest_external.py --swmh external/swmh --dreaddit external/dreaddit \
+    --out "data/Combined Data (mixed).csv" --merge               # real data + merge
+# downsampled per class to ≤6000 rows (seed 314) → data/Combined Data (balanced).csv
+python scripts/train_model.py "data/Combined Data (balanced).csv"
 pytest tests/test_classifier.py
 ```
+A plain `python scripts/train_model.py` (no argument) retrains a **synthetic-only**
+model from `data/Combined Data.csv` — useful for experiments, but its metrics will
+echo v6-era synthetic flattery, not real-world performance.
+
+### Training with real-world data (v7)
+
+The synthetic corpus caps the classifier — more compute won't fix it; only real text will.
+Two free, real, research-grade Reddit corpora fit the 5-class label set:
+
+| Dataset | Size | License/terms |
+|---|---|---|
+| [SWMH](https://huggingface.co/datasets/AIMH/SWMH) — "Reddit SuicideWatch and Mental Health Collection" (Ji et al., 2022) | ~54k posts: depression, anxiety, suicidewatch, offmychest (→ Normal), bipolar (dropped) | CC-BY-NC, **research-use only**, gated by HF terms + institutional email |
+| [Dreaddit](http://www.cs.columbia.edu/~eturcan/data/dreaddit.zip) (Turcan & McKeown, 2019, LOUHI) | 3,553 posts, binary stress (1,857 stress / 1,696 non-stress), official Columbia zip | Research use |
+
+At ingest time, `scripts/ingest_external.py` normalizes labels, drops out-of-scope classes
+and duplicates, and writes the merged CSV plus a `.manifest.json`; `train_model.py` reads
+that manifest and records provenance + license caveats in `model_metadata.json` automatically.
+
+**Caveats you cannot engineer away:** these are community-membership labels (weak supervision),
+not clinical ground truth; both corpora are non-commercial and research-only; Reddit ≠ journal
+entries. The real numbers are in the v7 evaluation table above — they're lower than v6's
+synthetic ones, and they're the honest ones.
 
 ---
 

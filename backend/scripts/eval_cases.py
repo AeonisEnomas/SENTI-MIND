@@ -55,20 +55,6 @@ ADVERSARIAL_CASES: list[tuple[str, str]] = [
     ("I avoid crowded places because they make me panic", "Anxiety"),
     ("I feel a constant sense of dread that won't go away", "Anxiety"),
     ("I check the door lock five times before leaving", "Anxiety"),
-    # Bipolar — clear
-    ("My moods swing from elated to crushing depression", "Bipolar"),
-    ("I spent thousands impulsively during a manic phase", "Bipolar"),
-    ("I cycle between feeling invincible and completely worthless", "Bipolar"),
-    ("I barely slept for three days and felt amazing until I crashed", "Bipolar"),
-    ("I feel like two different people depending on my phase", "Bipolar"),
-    ("I go from extreme highs to devastating lows", "Bipolar"),
-    # Personality disorder — clear
-    ("I feel disconnected and don't know who I am", "Personality disorder"),
-    ("I push everyone away before they can leave me", "Personality disorder"),
-    ("My sense of self changes depending on who I'm with", "Personality disorder"),
-    ("I idealize people then devalue them when they disappoint me", "Personality disorder"),
-    ("I feel chronically empty even when things are fine", "Personality disorder"),
-    ("I have an intense fear of abandonment that destroys relationships", "Personality disorder"),
 ]
 
 

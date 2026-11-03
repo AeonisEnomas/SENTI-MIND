@@ -1,0 +1,20 @@
+{
+  "_name_or_path": "distilroberta-base fine-tuned on the balanced SWMH+Dreaddit corpus (v8)",
+  "architectures": ["RobertaForSequenceClassification"],
+  "model_type": "roberta",
+  "num_hidden_layers": 6,
+  "id2label": {
+    "0": "Anxiety",
+    "1": "Depression",
+    "2": "Normal",
+    "3": "Stress",
+    "4": "Suicidal"
+  },
+  "label2id": {
+    "Anxiety": 0,
+    "Depression": 1,
+    "Normal": 2,
+    "Stress": 3,
+    "Suicidal": 4
+  }
+}

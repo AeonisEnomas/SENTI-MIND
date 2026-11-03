@@ -93,6 +93,8 @@ def _check_sklearn_version(metadata: dict) -> None:
 
 
 class ClinicalClassifier:
+    MODEL_DESCRIPTION = "LinearSVC TF-IDF"
+
     def __init__(self) -> None:
         self._model = None
         self._vectorizer = None
@@ -201,5 +203,35 @@ class ClinicalClassifier:
         }
 
 
-# Global classifier instance
-classifier = ClinicalClassifier()
+# Global classifier instance. Backend is selected in classifier._make_classifier():
+# "auto" (default) uses the local ONNX transformer (v8) when its artifacts are present,
+# else the sklearn LinearSVC (v7). CLASSIFIER_BACKEND=sklearn|onnx|auto forces one.
+from app.core.config import settings as _settings  # noqa: E402
+
+
+def _make_classifier():
+    backend = (getattr(_settings, "CLASSIFIER_BACKEND", "auto") or "auto").lower()
+    if backend == "onnx":
+        from app.models import classifier_onnx
+
+        if not classifier_onnx.available():
+            raise FileNotFoundError(
+                "CLASSIFIER_BACKEND=onnx but the ONNX artifacts are missing. "
+                "Run scripts/download_classifier_model.py or set CLASSIFIER_BACKEND=sklearn."
+            )
+        return classifier_onnx.ClinicalClassifierONNX()
+    if backend == "sklearn":
+        return ClinicalClassifier()
+    # auto
+    try:
+        from app.models import classifier_onnx
+
+        if classifier_onnx.available():
+            logger.info("Classifier backend: v8 local ONNX transformer")
+            return classifier_onnx.ClinicalClassifierONNX()
+    except Exception as exc:
+        logger.warning("ONNX classifier unavailable (%s); falling back to sklearn v7", exc)
+    return ClinicalClassifier()
+
+
+classifier = _make_classifier()

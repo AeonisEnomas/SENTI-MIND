@@ -4,7 +4,7 @@ import { useId, useState } from "react";
  * SentiBotAvatar — Premium EVE-style Therapist Companion Bot.
  *
  * Props:
- *  - emotion: "Normal"|"Stress"|"Anxiety"|"Depression"|"Bipolar"|"Suicidal"|"Personality Disorder"|"idle"|"loading"|null
+ *  - emotion: "Normal"|"Stress"|"Anxiety"|"Depression"|"Suicidal"|"idle"|"loading"|null
  *  - size: "xs" (36px) | "sm" (48px) | "md" (80px) | "lg" (120px)
  *  - animate: boolean (default true)
  *  - showLabel: boolean — show emotion label below
@@ -67,15 +67,6 @@ const EMOTION_THEMES = {
     animClass: "sentibot-heavy",
     label: "Low Mood",
   },
-  Bipolar: {
-    primary: "#c8b8fa", // Purple
-    visor: "#1e1826",
-    glow: "rgba(200, 184, 250, 0.5)",
-    eyeShape: "shifting",
-    mouth: "mixed",
-    animClass: "sentibot-cycle",
-    label: "Mood Cycling",
-  },
   Suicidal: {
     primary: "#ff6b66", // Emergency red
     visor: "#261010",
@@ -84,15 +75,6 @@ const EMOTION_THEMES = {
     mouth: "flat",
     animClass: "sentibot-alert",
     label: "Crisis Detected",
-  },
-  "Personality Disorder": {
-    primary: "#d4b3fa", // Violet
-    visor: "#201826",
-    glow: "rgba(212, 179, 250, 0.5)",
-    eyeShape: "split",
-    mouth: "neutral",
-    animClass: "sentibot-split",
-    label: "Identity Pattern",
   },
 };
 
@@ -152,20 +134,6 @@ function Eyes({ shape, size, primary }) {
           <rect x={(cx1 + 4) * s} y={(cy + 8) * s} width={3 * s} height={6 * s} rx={1.5 * s} fill={primary} className="sentibot-tear" />
         </g>
       );
-    case "shifting":
-      return (
-        <g className="sentibot-led-glow sentibot-eye-shift">
-          <circle cx={cx1 * s} cy={cy * s} r={4 * s} fill={primary} />
-          <circle cx={cx2 * s} cy={cy * s} r={4 * s} fill={primary} />
-        </g>
-      );
-    case "split":
-      return (
-        <g className="sentibot-led-glow">
-          <path d={`M${(cx1 - r) * s} ${cy * s} Q${cx1 * s} ${(cy - 8) * s} ${(cx1 + r) * s} ${cy * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
-          <line x1={(cx2 - 5) * s} y1={(cy + 2) * s} x2={(cx2 + 5) * s} y2={(cy + 2) * s} stroke={primary} strokeWidth={strokeWidth} strokeLinecap="round" />
-        </g>
-      );
     case "blink":
       return (
         <g className="sentibot-led-glow sentibot-blink">
@@ -202,12 +170,6 @@ function Mouth({ shape, size, primary }) {
       return <path d={`M${(cx - 10) * s} ${my * s} Q${(cx - 5) * s} ${(my - 4) * s} ${cx * s} ${my * s} Q${(cx + 5) * s} ${(my + 4) * s} ${(cx + 10) * s} ${my * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" className="sentibot-wavy-mouth sentibot-led-glow" />;
     case "flat":
       return <line x1={(cx - 6) * s} y1={(my + 2) * s} x2={(cx + 6) * s} y2={(my + 2) * s} stroke={primary} strokeWidth={strokeWidth} strokeLinecap="round" className="sentibot-led-glow" />;
-    case "mixed":
-      return (
-        <g className="sentibot-mouth-shift sentibot-led-glow">
-          <path d={`M${(cx - 10) * s} ${my * s} Q${cx * s} ${(my + 6) * s} ${(cx + 10) * s} ${my * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
-        </g>
-      );
     default: // neutral
       return <path d={`M${(cx - 6) * s} ${my * s} Q${cx * s} ${(my + 2) * s} ${(cx + 6) * s} ${my * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" className="sentibot-led-glow" />;
   }

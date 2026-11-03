@@ -14,6 +14,11 @@ joblib==1.6.0
 numpy==2.4.6
 spacy==3.8.16
 
+# Local emotion inference: INT8 ONNX export of j-hartmann/emotion-english-distilroberta-base
+# (onnx-community), downloaded by scripts/download_emotion_model.py. No API token, no per-call cost.
+onnxruntime==1.31.1
+tokenizers==0.23.3
+
 # spaCy English model, installed from the official release wheel so that
 # Render / CI builds get it without running `python -m spacy download`.
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85

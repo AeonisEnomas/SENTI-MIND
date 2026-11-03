@@ -18,10 +18,8 @@ from pathlib import Path
 
 from eval_cases import held_out_sentences, normalize_sentence
 from training_data.anxiety import ANXIETY
-from training_data.bipolar import BIPOLAR
 from training_data.depression import DEPRESSION
 from training_data.normal import NORMAL
-from training_data.personality_disorder import PERSONALITY_DISORDER
 from training_data.stress import STRESS
 from training_data.suicidal import SUICIDAL
 
@@ -33,8 +31,6 @@ CATEGORIES = [
     (ANXIETY, "Anxiety"),
     (SUICIDAL, "Suicidal"),
     (STRESS, "Stress"),
-    (BIPOLAR, "Bipolar"),
-    (PERSONALITY_DISORDER, "Personality disorder"),
     (NORMAL, "Normal"),
 ]
 

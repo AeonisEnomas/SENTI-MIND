@@ -98,6 +98,14 @@ if [ "$(cat "$REQ_STAMP" 2>/dev/null)" != "$REQ_HASH" ]; then
     echo -e "${GREEN}Backend setup complete!${NC}"
 fi
 
+# Download the local ONNX emotion model if missing (pinned revision + SHA-256).
+# Non-fatal: the app reports emotions as unavailable rather than fabricating them.
+if [ ! -f "backend/app/models/emotion_onnx/model_int8.onnx" ]; then
+    echo -e "${YELLOW}Downloading local ONNX emotion model (~83 MB)...${NC}"
+    "$VENV_PY" backend/scripts/download_emotion_model.py || \
+        echo -e "${YELLOW}Emotion model download failed; emotions will be reported as unavailable.${NC}"
+fi
+
 # Ensure .env exists at the repo root (shared by backend and frontend)
 if [ ! -f "$PROJECT_DIR/.env" ] && [ -f "$PROJECT_DIR/.env.example" ]; then
     echo -e "${YELLOW}Creating .env from .env.example...${NC}"

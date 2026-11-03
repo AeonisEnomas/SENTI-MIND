@@ -1,6 +1,6 @@
 {
-  "model_version": "v5",
-  "trained_at": "2026-10-12T12:21:33+00:00",
+  "model_version": "v7",
+  "trained_at": "2026-11-03T11:58:58+00:00",
   "environment": {
     "python_version": "3.11.17",
     "sklearn_version": "1.8.0",
@@ -8,25 +8,45 @@
     "joblib_version": "1.6.0"
   },
   "git": {
-    "sha": "d7e64a8a84c355d8b3c34f3a1cfab54dbbd7a85a",
-    "training_code_dirty": false
+    "sha": "cfd227bdf253388b6d1049e27309d630815179f7",
+    "training_code_dirty": true
   },
   "sha256": {
-    "training_csv": "066832844e9688c0955ffc9ea3491ee10833d33edbf0d87b76693c720a400263",
-    "sentiment_model.joblib": "e522891718ad8b7472be7c6be353886650cd7e9056af3f1e2acf38ccfb0fc514",
-    "vectorizer.joblib": "6d2ec58e9a013d79cac83f35aa975492cf88159997774d5d83029b4616bffdfd"
+    "training_csv": "9b463b3825d3a63b17e4dea33e847c411e8b7cc6ce280d6baa1c7c9e83dacacd",
+    "sentiment_model.joblib": "0f273a0416268797f0ab1ecb8817222030876b28bfb57c69095e5e913e6d92e7",
+    "vectorizer.joblib": "3650e7def58bbec7cd04cb2abcc5ef3d2a7815277f26b41aa54bb6ec2c8bbfe0"
   },
   "data": {
-    "source": "synthetic, hand-written sentence pools in scripts/training_data/ (not clinical data)",
-    "samples_total": 3841,
+    "source": "Mixed: synthetic pools (scripts/training_data/) + real-world data: SWMH (Ji et al., 2022; Reddit; CC-BY-NC), Dreaddit (Turcan & McKeown, 2019; Reddit; research use; official Columbia distribution)",
+    "samples_total": 27542,
     "class_counts": {
-      "Anxiety": 561,
-      "Bipolar": 586,
-      "Depression": 516,
-      "Normal": 557,
-      "Personality disorder": 476,
-      "Stress": 621,
-      "Suicidal": 524
+      "Anxiety": 6237,
+      "Depression": 6347,
+      "Normal": 6239,
+      "Stress": 2471,
+      "Suicidal": 6248
+    },
+    "external": {
+      "created_at": "2026-11-03T11:10:36+00:00",
+      "merged_with_synthetic_pool": true,
+      "sources": [
+        "SWMH (Ji et al., 2022; Reddit; CC-BY-NC)",
+        "Dreaddit (Turcan & McKeown, 2019; Reddit; research use; official Columbia distribution)"
+      ],
+      "attribution": [
+        "Ji, S., Li, X., Huang, Z. & Cambria, E. (2022). Suicidal ideation and mental disorder detection with attentive relation networks. Neural Computing and Applications, 32.",
+        "Turcan, E. & McKeown, K. (2019). Dreaddit: A Reddit dataset for stress analysis in social media. Proc. 5th Workshop on Noisy User-generated Text (W-NUT), 97\u2013107."
+      ],
+      "license_note": "SWMH is CC-BY-NC and research-use only. Dreaddit is research-use. Neither is clinical ground truth and both are non-commercial; do NOT use the trained model commercially, and do NOT present metrics as clinical validation.",
+      "external_rows": 50175,
+      "class_counts": {
+        "Depression": 6000,
+        "Anxiety": 6000,
+        "Normal": 6000,
+        "Suicidal": 6000,
+        "Stress": 2471
+      },
+      "balancing": "downsampled classes >6000 rows to 6000 (seed 314); duplicate weighting of the synthetic pool was attempted but was undone by the loader's de-duplication, so this model is effectively the balanced mixed corpus"
     }
   },
   "evaluation": {
@@ -35,194 +55,180 @@
     "final_model_fit_on": "train split only",
     "near_dup_jaccard_threshold": 0.6,
     "groups": {
-      "count": 2952,
+      "count": 26652,
       "largest": 59,
-      "singletons": 2739
+      "singletons": 26393
     },
     "leakage_check": {
       "group_split": {
-        "test_rows": 768,
+        "test_rows": 5509,
         "exact_duplicates_in_train": 0,
         "near_duplicates_in_train": 0,
         "near_duplicate_rate": 0.0,
-        "mean_max_jaccard_to_train": 0.3998
+        "mean_max_jaccard_to_train": 0.1391
       },
       "random_split_reference": {
-        "test_rows": 769,
+        "test_rows": 5509,
         "exact_duplicates_in_train": 0,
-        "near_duplicates_in_train": 198,
-        "near_duplicate_rate": 0.2575,
-        "mean_max_jaccard_to_train": 0.463
+        "near_duplicates_in_train": 202,
+        "near_duplicate_rate": 0.0367,
+        "mean_max_jaccard_to_train": 0.1515
       },
       "adversarial_vs_train": {
-        "test_rows": 51,
+        "test_rows": 39,
         "exact_duplicates_in_train": 0,
-        "near_duplicates_in_train": 9,
-        "near_duplicate_rate": 0.1765,
-        "mean_max_jaccard_to_train": 0.4614
+        "near_duplicates_in_train": 8,
+        "near_duplicate_rate": 0.2051,
+        "mean_max_jaccard_to_train": 0.479
       }
     },
     "caveats": [
-      "Synthetic, template-generated sentences; metrics do not reflect real-world or clinical performance.",
+      "50175 external rows carry weak-supervision labels (subreddit-of-origin, not clinical assessment). Licenses/terms: SWMH is CC-BY-NC and research-use only. Dreaddit is research-use. Neither is clinical ground truth and both are non-commercial; do NOT use the trained model commercially, and do NOT present metrics as clinical validation.. Attribution: Ji, S., Li, X., Huang, Z. & Cambria, E. (2022). Suicidal ideation and mental disorder detection with attentive relation networks. Neural Computing and Applications, 32.; Turcan, E. & McKeown, K. (2019). Dreaddit: A Reddit dataset for stress analysis in social media. Proc. 5th Workshop on Noisy User-generated Text (W-NUT), 97\u2013107..",
+      "Synthetic pool rows do not reflect real-world language; metrics are dominated by whichever source is larger.",
       "The model is not clinically validated and must not be used for diagnosis.",
       "Calibration inside CalibratedClassifierCV uses ungrouped 3-fold CV."
     ]
   },
-  "samples_train": 3073,
-  "samples_test": 768,
+  "samples_train": 22033,
+  "samples_test": 5509,
   "classes": [
     "Anxiety",
-    "Bipolar",
     "Depression",
     "Normal",
-    "Personality disorder",
     "Stress",
     "Suicidal"
   ],
   "best_params": {
-    "C": 0.5,
+    "C": 0.1,
     "ngram_range": [
       1,
       2
     ],
-    "max_features": 15000
+    "max_features": 20000
   },
-  "accuracy": 0.7734375,
-  "macro_f1": 0.7672049830427128,
-  "weighted_f1": 0.7715810812885895,
-  "cv_f1_macro_mean": 0.7593100651673381,
-  "cv_f1_macro_std": 0.027316625865984975,
+  "accuracy": 0.6636413142131058,
+  "macro_f1": 0.6454458432170662,
+  "weighted_f1": 0.6610829390580998,
+  "cv_f1_macro_mean": 0.6244993146569693,
+  "cv_f1_macro_std": 0.008184818726717379,
   "per_class_metrics": {
     "Anxiety": {
-      "precision": 0.875,
-      "recall": 0.9375,
-      "f1": 0.9051724137931034,
-      "support": 112
-    },
-    "Bipolar": {
-      "precision": 0.7563025210084033,
-      "recall": 0.7692307692307693,
-      "f1": 0.7627118644067796,
-      "support": 117
+      "precision": 0.7908496732026143,
+      "recall": 0.7756410256410257,
+      "f1": 0.7831715210355987,
+      "support": 1248
     },
     "Depression": {
-      "precision": 0.5483870967741935,
-      "recall": 0.49514563106796117,
-      "f1": 0.5204081632653061,
-      "support": 103
+      "precision": 0.583904109589041,
+      "recall": 0.5374310480693459,
+      "f1": 0.5597045547804678,
+      "support": 1269
     },
     "Normal": {
-      "precision": 0.8151260504201681,
-      "recall": 0.8660714285714286,
-      "f1": 0.8398268398268398,
-      "support": 112
-    },
-    "Personality disorder": {
-      "precision": 0.6796116504854369,
-      "recall": 0.7368421052631579,
-      "f1": 0.7070707070707071,
-      "support": 95
+      "precision": 0.5957592339261286,
+      "recall": 0.6979166666666666,
+      "f1": 0.6428044280442804,
+      "support": 1248
     },
     "Stress": {
-      "precision": 0.8434782608695652,
-      "recall": 0.782258064516129,
-      "f1": 0.8117154811715481,
-      "support": 124
+      "precision": 0.655688622754491,
+      "recall": 0.4433198380566802,
+      "f1": 0.5289855072463768,
+      "support": 494
     },
     "Suicidal": {
-      "precision": 0.8484848484848485,
-      "recall": 0.8,
-      "f1": 0.8235294117647058,
-      "support": 105
+      "precision": 0.6934140802422407,
+      "recall": 0.7328,
+      "f1": 0.7125632049786076,
+      "support": 1250
     }
   },
   "confusion_matrix": {
     "labels": [
       "Anxiety",
-      "Bipolar",
       "Depression",
       "Normal",
-      "Personality disorder",
       "Stress",
       "Suicidal"
     ],
     "matrix": [
       [
-        105,
-        1,
-        2,
-        2,
-        1,
-        1,
-        0
+        968,
+        113,
+        116,
+        16,
+        35
       ],
       [
-        0,
-        90,
-        14,
-        6,
-        5,
-        0,
-        2
+        87,
+        682,
+        231,
+        28,
+        241
       ],
       [
-        4,
-        12,
-        51,
-        4,
-        17,
-        8,
-        7
+        72,
+        152,
+        871,
+        53,
+        100
       ],
       [
-        2,
-        3,
-        3,
-        97,
-        3,
-        3,
-        1
+        81,
+        45,
+        120,
+        219,
+        29
       ],
       [
-        2,
-        5,
-        8,
-        4,
-        70,
-        2,
-        4
-      ],
-      [
-        7,
-        5,
-        6,
-        4,
-        4,
-        97,
-        1
-      ],
-      [
-        0,
-        3,
-        9,
-        2,
-        3,
-        4,
-        84
+        16,
+        176,
+        124,
+        18,
+        916
       ]
     ]
   },
-  "adversarial_spot_check": "46/51",
-  "adversarial_spot_check_without_train_near_dups": "37/42",
+  "adversarial_spot_check": "29/39",
+  "adversarial_spot_check_without_train_near_dups": "24/31",
   "adversarial_per_class": {
-    "Anxiety": "6/6",
-    "Bipolar": "6/6",
+    "Anxiety": "5/6",
     "Depression": "6/6",
-    "Normal": "12/15",
-    "Personality disorder": "5/6",
+    "Normal": "6/15",
     "Stress": "6/6",
-    "Suicidal": "5/6"
+    "Suicidal": "6/6"
   },
   "has_calibration": true,
-  "preprocessing": "shared app.core.preprocessing (contractions + negation_scope + intensity + temporal + crisis)"
+  "preprocessing": "shared app.core.preprocessing (contractions + negation_scope + intensity + temporal + crisis)",
+  "onnx_v8": {
+    "description": "distilroberta-base fine-tuned on the same group-aware split as v7 (balanced SWMH+Dreaddit mixed corpus), INT8-quantised ONNX. Produced via docs/FINE_TUNING.md recipe; selected automatically by app.models.classifier when present (CLASSIFIER_BACKEND=auto|onnx).",
+    "model_version": "v8",
+    "files": {
+      "app/models/classifier_onnx/model_int8.onnx": "e0db31ae868a4bf9792f56dd2ed5c055be665ab69a19eabcfd41a63da0aee452",
+      "app/models/classifier_onnx/tokenizer.json": "847bbeab6174d66a88898f729d52fa8d355fafe1bea101cf960dd404581df70e",
+      "app/models/classifier_onnx/config.json": "bb5b155d79499ddaf544309ba9a1e6cd09eddfd5b3d8bb2fd2ce8addccf79756"
+    },
+    "evaluation": {
+      "split": "identical fold-0 holdout as v7 (group-aware, random_state=42)",
+      "accuracy": 0.7142,
+      "macro_f1": 0.7224,
+      "per_class_f1": {
+        "Anxiety": 0.82,
+        "Depression": 0.57,
+        "Normal": 0.69,
+        "Stress": 0.8,
+        "Suicidal": 0.72
+      },
+      "suicidal_recall": 0.753,
+      "stress_recall": 0.85,
+      "adversarial_spot_check": "30/39",
+      "vs_v7": {
+        "macro_f1": "+0.077",
+        "accuracy": "+0.050",
+        "stress_recall": "+0.41"
+      }
+    },
+    "calibration_note": "softmax over logits, NOT calibrated like v7's sigmoid-calibrated LinearSVC \u2014 treat confidence_tier bands as directional.",
+    "license_note": "weights fine-tuned on CC-BY-NC / research-use corpora \u2014 non-commercial use only."
+  }
 }

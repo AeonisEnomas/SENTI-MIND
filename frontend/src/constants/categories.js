@@ -34,15 +34,6 @@ export const CATEGORY_CONFIG = {
     swatch: "bg-orange-400",
     bar: "bg-medical-moderate",
   },
-  Bipolar: {
-    label: "Bipolar",
-    icon: "⚡",
-    text: "text-indigo-700",
-    bg: "bg-indigo-50",
-    border: "border-indigo-200",
-    swatch: "bg-indigo-400",
-    bar: "bg-indigo-500",
-  },
   Depression: {
     label: "Depression",
     icon: "☁️",
@@ -60,15 +51,6 @@ export const CATEGORY_CONFIG = {
     border: "border-rose-300",
     swatch: "bg-rose-600",
     bar: "bg-medical-emergency",
-  },
-  "Personality Disorder": {
-    label: "Personality Disorder",
-    icon: "🎭",
-    text: "text-violet-700",
-    bg: "bg-violet-50",
-    border: "border-violet-200",
-    swatch: "bg-violet-400",
-    bar: "bg-violet-500",
   },
 };
 

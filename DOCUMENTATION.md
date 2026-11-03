@@ -44,8 +44,9 @@ SENTI-MIND is an AI-powered mental health text analysis application that detects
 │  ┌──────────────────────────────────────────────────────────────────────┐│
 │  │                         Model Layer                                   ││
 │  │  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐   ││
-│  │  │ LinearSVC +     │  │ HuggingFace      │  │ OpenRouter       │   ││
-│  │  │ TF-IDF (v5)     │  │ distilroberta    │  │ gemini-flash-lite│   ││
+│  │  │ Classifier      │  │ distilroberta    │  │ OpenRouter       │   ││
+│  │  │ (v7 sklearn /   │  │ (local ONNX)     │  │ free slugs       │   ││
+│  │  │  v8 ONNX)       │  │ emotions         │  │                  │   ││
 │  │  └─────────────────┘  └──────────────────┘  └──────────────────┘   ││
 │  └────────────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────────────┘
@@ -105,8 +106,9 @@ SENTI-MIND/
 │   │   │   ├── constants.py              # Thresholds, categories
 │   │   │   └── preprocessing.py          # Shared ML text preprocessor
 │   │   ├── models/
-│   │   │   ├── classifier.py             # ClinicalClassifier (LinearSVC, hash-verified load)
-│   │   │   ├── emotions.py               # HuggingFace emotion detection
+│   │   │   ├── classifier.py             # ClinicalClassifier (sklearn LinearSVC v7; auto-selects v8)
+│   │   │   ├── classifier_onnx.py        # ClinicalClassifierONNX (v8; local INT8 ONNX)
+│   │   │   ├── emotions.py               # Local ONNX emotion detection
 │   │   │   ├── llm.py                    # OpenRouter insight generation
 │   │   │   └── schemas.py                # Pydantic request/response models
 │   │   └── services/
@@ -114,9 +116,10 @@ SENTI-MIND/
 │   │       ├── preprocessor.py           # Base Text cleaning (Emoji handling)
 │   │       └── risk_engine.py            # Enhanced risk assessment
 │   ├── data/                             # Model artifacts & training data
-│   │   ├── Combined Data.csv             # Generated, gitignored (3,841 unique synthetic sentences)
-│   │   ├── sentiment_model.joblib        # Calibrated LinearSVC (v5)
-│   │   ├── vectorizer.joblib             # TF-IDF vectorizer (v5)
+│   │   ├── Combined Data.csv             # Generated, gitignored (2,779 unique synthetic sentences)
+│   │   ├── sentiment_model.joblib        # Calibrated LinearSVC (v7, sklearn fallback)
+│   │   ├── vectorizer.joblib             # TF-IDF vectorizer (v7, sklearn fallback)
+│   │   ├── classifier_onnx/              # v8 transformer (local ONNX INT8, auto-selected)
 │   │   └── model_metadata.json           # Metrics, leakage stats, versions, SHA-256 hashes
 │   ├── scripts/
 │   │   ├── generate_training_data.py     # Writes every unique pool sentence once
@@ -175,7 +178,7 @@ SENTI-MIND/
 
 ---
 
-### 2. Clinical Classifier (`app/models/classifier.py`, model v5)
+### 2. Clinical Classifier (`app/models/classifier.py` v7 sklearn / `app/models/classifier_onnx.py` v8 transformer; auto-selected)
 
 **Class:** `ClinicalClassifier`
 
@@ -289,9 +292,9 @@ package. Every unique sentence (after case/punctuation normalisation) is written
 any sentence that matches a held-out evaluation sentence (`scripts/eval_cases.py` or a
 `classifier.predict("...")` call in `tests/test_classifier.py`) is dropped.
 
-**Total:** 3,841 synthetic samples across 7 classes (476–621 per class, including hard
-negatives to prevent keyword overfitting). Imbalance is handled with
-`class_weight="balanced"`. This is not clinical data.
+The synthetic pool alone is 2,779 samples (516–621 per class). The v7 artifacts train on
+that plus 50,175 real Reddit rows downsampled to ≤6,000 per class (see §Current results (v7)).
+Imbalance is handled with `class_weight="balanced"`. This is not clinical data.
 
 ### Training Script (`scripts/train_model.py`)
 
@@ -300,22 +303,37 @@ negatives to prevent keyword overfitting). Imbalance is handled with
 3. Grid-searches `C`, n-gram range and `max_features` with group-aware 5-fold CV **on the
    training split only**.
 4. Fits the final model on the training split (the saved artifact is the one the test
-   metrics describe), evaluates it on the test set and on the 51 adversarial cases.
+   metrics describe), evaluates it on the test set and on the 39 adversarial cases.
 5. Writes the artifacts and `model_metadata.json` (metrics, confusion matrix, leakage
    check, Python/scikit-learn versions, git commit, SHA-256 of the CSV and artifacts).
 
-### Current results (v5)
+### Current results (v7)
 
-| | v4 (previous, random split) | v5 (group split) |
-|---|---|---|
-| Held-out macro F1 | 0.795 | 0.767 |
-| Held-out accuracy | 0.795 | 0.773 |
-| CV macro F1 | 0.792 ± 0.029 (10-fold, included test rows) | 0.759 ± 0.027 (grouped 5-fold, train only) |
-| Adversarial spot-check | 43/51 (8 cases were in the training data) | 46/51 (37/42 without a train near-duplicate) |
-| Test rows with a near-duplicate in train | ~26% | 0% |
+v6 dropped the unlearnable Bipolar and Personality Disorder classes. v7 additionally
+**replaces the synthetic-only corpus with real-world Reddit text**: 2,779 synthetic
+rows + 50,175 real rows (SWMH: depression/anxiety/suicidewatch→Suicidal,
+offmychest→Normal; Dreaddit: stress→Stress), downsampled to ≤6,000 per class
+(25,471 unique rows after de-duplication; 21,177 train / 5,294 test; groups never
+span train/test). Blocking (rarest-token inverted index) replaces all-pairs Jaccard
+for near-duplicate clustering, which is infeasible at this size.
 
-Weakest class: Depression (F1 0.52), confused with Personality disorder and Bipolar.
-These are metrics on synthetic text; **the classifier is not clinically validated.**
+| Metric (held-out, group split) | v7 |
+|---|---|
+| Held-out macro F1 | 0.645 |
+| Held-out accuracy | 0.664 |
+| CV macro F1 (grouped 5-fold, train only) | 0.625 ± 0.008 |
+| Adversarial spot-check | 29/39 (24/31 without a train near-duplicate) |
+| Per-class F1 | Anxiety 0.78 · Normal 0.64 · Suicidal 0.71 · Stress 0.53 · Depression 0.56 |
+
+Sources are CC-BY-NC / research-use (SWMH) and research-use (Dreaddit), weak-supervision
+community labels; **the classifier is not clinically validated**. v6's 0.814 macro F1 on
+synthetic text was not comparable — on real Reddit rows that v6 model scores only 0.401,
+which is why v7 exists. Known limitations are documented in README (negation hard negatives; weak Stress recall for v7 — v8 lifts it; Reddit ≠ journal entries).
+
+> **v8 supersedes v7 as the default backend** (`app/models/classifier.py`): same split, same data —
+> a distilroberta fine-tune rather than TF-IDF+LinearSVC (`docs/FINE_TUNING.md`). Macro F1 0.722 vs 0.645,
+> accuracy 0.714 vs 0.664, Stress recall 0.85 vs 0.44, adversarial 30/39. v7 stays shipped as the sklearn
+> fallback. The caveats above apply to v8 identically.
 
 After any change to `app/core/preprocessing.py` or the training data, regenerate, retrain
 and run `pytest tests/test_classifier.py`; keep `scikit-learn` in `requirements.txt` equal
@@ -357,5 +375,5 @@ The app's crisis banner and chat agent point to Pakistan services:
 ---
 
 **Last Updated:** October 2026
-**Version:** Classifier v5 (group-aware evaluation)
+**Version:** v7 sklearn (LinearSVC TF-IDF) · v8 transformer (distilroberta fine-tune, INT8 ONNX; default when present). See README §Evaluation (models v7 & v8) for the side-by-side.
 **Maintainer:** Future agents - read this before making changes!

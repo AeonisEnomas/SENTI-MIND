@@ -17,6 +17,8 @@ build/
 
 # ML artefacts
 *.csv
+backend/external/
+backend/app/models/emotion_onnx/
 
 # Node / frontend
 node_modules/
@@ -39,3 +41,4 @@ htmlcov/
 
 # Generated
 graphify-out/
+backend/data/finetune/

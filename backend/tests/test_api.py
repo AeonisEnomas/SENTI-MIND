@@ -388,7 +388,7 @@ def test_journal_validation(client, fake_db, payload):
     assert fake_db.inserted == []
 
 
-@pytest.mark.parametrize("category", ["Uncertain", "Insufficient", "Unknown", "Personality Disorder"])
+@pytest.mark.parametrize("category", ["Uncertain", "Insufficient", "Unknown"])
 def test_journal_accepts_classifier_edge_categories(client, category):
     r = client.post("/api/v1/journal/", json={"raw_text": "ok", "analysis": {}, "category": category})
     assert r.status_code == 201

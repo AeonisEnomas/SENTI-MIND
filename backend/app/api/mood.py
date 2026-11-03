@@ -132,6 +132,8 @@ def _generate_feedback(entries: list) -> str:
         return "No mood data yet. Start journaling to see your trends!"
 
     POSITIVE = {"Normal"}
+    # Includes legacy labels ("Bipolar", "Personality Disorder") that older entries were stored
+    # under, so histories counted before those classes were dropped still tally as difficult days.
     NEGATIVE = {"Depression", "Suicidal", "Anxiety", "Bipolar", "Stress", "Personality Disorder"}
 
     recent = entries[-7:]  # last 7 days
