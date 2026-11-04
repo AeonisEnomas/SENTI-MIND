@@ -24,12 +24,13 @@ import urllib.request
 from pathlib import Path
 
 REVISION = "main"  # pinned to a commit SHA once the artifacts are published
+# MODEL_VERSION sidecar (e.g. "v9") selects the v9 512-token path; absent -> v8 256-token.
 MODEL_DIR = Path(__file__).resolve().parent.parent / "app" / "models" / "classifier_onnx"
 
 # Filename -> expected sha256, pinned at REVISION. Filled in after the v8 export
 # lands locally (see docs/FINE_TUNING.md); empty values disable fetching but not verification.
 FILES: dict[str, str] = {
-    "model_int8.onnx": "e0db31ae868a4bf9792f56dd2ed5c055be665ab69a19eabcfd41a63da0aee452",
+    "model_int8.onnx": "3efeae4223802cf93626dea796155a918b8a9c6c83ccc9d13ed415de1ccff20d",
     "tokenizer.json": "847bbeab6174d66a88898f729d52fa8d355fafe1bea101cf960dd404581df70e",
     # distilroberta-base tokenizer/config copied from ./finetuned at export time;
     # config.json is optional — the backend falls back to the alphabetical class order

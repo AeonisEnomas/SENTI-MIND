@@ -165,7 +165,7 @@ class TestClassifierState:
         # sklearn artifacts prove integrity via metadata hashes; the ONNX transformer
         # (v8) carries its own provenance and sets its version explicitly.
         if getattr(classifier, "MODEL_DESCRIPTION", "").startswith("transformer"):
-            assert classifier.model_version == "v8"
+            assert classifier.model_version in ("v8", "v9")
         else:
             metadata = json.loads(classifier_module.METADATA_PATH.read_text())
             assert classifier.model_version == metadata["model_version"]

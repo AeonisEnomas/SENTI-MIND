@@ -48,7 +48,7 @@ Exact versions are pinned in `backend/requirements.txt` (runtime),
 - **Framework**: FastAPI, served by Uvicorn
 - **Validation / settings**: Pydantic 2, pydantic-settings
 - **NLP**: spaCy 3.8 with `en_core_web_sm` (installed from `requirements.txt`)
-- **ML**: scikit-learn 1.8.0 (calibrated LinearSVC over TF-IDF, v7 fallback), onnxruntime (v8 transformer inference), joblib, numpy
+- **ML**: scikit-learn 1.8.0 (calibrated LinearSVC over TF-IDF, v7 fallback), onnxruntime (v9 transformer inference), joblib, numpy
 - **Database & auth**: Supabase Python client (JWTs are verified through Supabase; queries run under Row-Level Security)
 - **HTTP client**: httpx
 - **Testing**: pytest, pytest-asyncio
@@ -56,7 +56,7 @@ Exact versions are pinned in `backend/requirements.txt` (runtime),
 
 ### AI/ML Components
 - **Emotion Detection**: HuggingFace Inference API (j-hartmann/emotion-english-distilroberta-base)
-- **Clinical Classifier**: v8 — distilroberta fine-tuned on the balanced SWMH+Dreaddit corpus (INT8 ONNX, local); v7 — calibrated LinearSVC with TF-IDF (shipped as fallback;`CLASSIFIER_BACKEND=sklearn|auto|onnx`)
+- **Clinical Classifier**: v9 — distilroberta fine-tuned at max_length=512 on the balanced SWMH+Dreaddit corpus with temperature-scaled softmax (INT8 ONNX, local); v7 — calibrated LinearSVC with TF-IDF (shipped as fallback; `CLASSIFIER_BACKEND=sklearn|auto|onnx`)
 - **LLM Insights & Chat Agent**: OpenRouter API (default `google/gemini-3.1-flash-lite-preview`, configurable via `OPENROUTER_MODEL`)
 - **NER (Named Entity Recognition)**: spaCy pipeline
 
@@ -235,7 +235,7 @@ Features engineered with:
 - **Class balancing**: `class_weight="balanced"`
 - **Calibration**: Sigmoid calibration for probability estimates
 
-### Evaluation (models v7 & v8)
+### Evaluation (models v7, v8 & v9)
 
 The synthetic corpus caps the classifier, so v7 trains on **real-world text**:
 2,779 synthetic rows + 50,175 real Reddit rows (SWMH for Depression/Anxiety/Suicidal
@@ -248,24 +248,20 @@ split only. Caveats live in `model_metadata.json`: subreddit-membership labels a
 weak supervision, the sources are CC-BY-NC research-use only, and **the model is not
 clinically validated**.
 
-**v8** (shipped by default when the ONNX artifacts are present,
-see `app/models/classifier_onnx/`) fine-tunes `distilroberta-base` on the *same*
-group-aware split (see `docs/FINE_TUNING.md` for the full recipe) and is what
-`CLASSIFIER_BACKEND=auto` selects:
+**v8** fine-tunes `distilroberta-base` on the *same* group-aware split (see `docs/FINE_TUNING.md` for the full recipe). **v9** extends that recipe to **max_length=512** and ships temperature-scaled softmax (fit on the val fold) for honest `confidence_tier` bands — it is what `CLASSIFIER_BACKEND=auto` selects:
 
-| Metric (held-out fold 0, both models) | v7 (sklearn) | **v8 (transformer ONNX)** |
-|---|---|---|
-| Macro F1 | 0.645 | **0.722** |
-| Accuracy | 0.664 | **0.714** |
-| Anxiety F1 | 0.78 | **0.82** |
-| Depression F1 | 0.56 | 0.57 |
-| Normal F1 | 0.64 | **0.69** |
-| Stress F1 | 0.53 | **0.80** |
-| Suicidal recall | 0.73 | **0.75** |
-| Adversarial spot-check | 29/39 | **30/39** |
+| Metric (held-out fold 0) | v7 (sklearn) | v8 (transformer-256) | **v9 (transformer-512)** |
+|---|---|---|---|
+| Macro F1 | 0.645 | 0.722 | **0.742** |
+| Accuracy | 0.664 | 0.714 | **0.734** |
+| Anxiety F1 | 0.78 | 0.82 | **0.84** |
+| Depression F1 | 0.56 | 0.57 | **0.60** |
+| Normal F1 | 0.64 | 0.69 | 0.71 |
+| Stress F1 | 0.53 | 0.80 | **0.81** |
+| Suicidal recall | 0.73 | 0.75 | **0.77** |
+| Adversarial spot-check | 29/39 | 30/39 | **36/39** |
 
-Per-class F1 wins where it matters most (Stress recall 0.44 → **0.85**); v8 is the
-default, v7 remains shipped as the sklearn fallback.
+Per-class F1 wins where it matters most (Stress recall 0.44 → **0.88** with v9); v9 ships by default when present, v7 remains the sklearn fallback.
 
 > [!IMPORTANT]
 > v6's flattering numbers (macro F1 0.814, adversarial 35/39) were measured on
@@ -274,15 +270,15 @@ default, v7 remains shipped as the sklearn fallback.
 > quote v6-style figures for these artifacts.
 
 Known limitations (also in `DOCUMENTATION.md`):
-- v8 (raw text) reads distress priors hard: negation examples like
+- v9 (raw text) reads distress priors hard: negation examples like
   "I don't want to die, I just need a break" and "no longer depressed thanks to support"
   are predicted as Suicidal/Depression respectively (over-alerting; the deterministic
   crisis-keyword gate is unaffected by model choice). v7 handled these via
   NEG_-scoped preprocessing.
-- v7/v8 Reddit priors would classify classroom discussion of suicide (e.g.
-  "we discussed suicide prevention in psych class") as distress — v8 gets that specific
+- v7/v8/v9 Reddit priors would classify classroom discussion of suicide (e.g.
+  "we discussed suicide prevention in psych class") as distress — v9 gets that one right, the earlier ones did not;
   one right, v7 does not.
-- Stress recall is weak for v7 (0.44); v8 lifts it to 0.85.
+- Stress recall is weak for v7 (0.44); v9 lifts it to 0.88.
 - Reddit ≠ journal entries. These numbers are a proxy for, not a measurement of,
   journal-writing performance.
 

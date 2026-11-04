@@ -205,3 +205,19 @@ Append a short table to `data/model_metadata.json`? No — model_metadata is for
 shipped artifact. Instead add the result table to `docs/FINE_TUNING.md` §Results (create
 it in the PR) or the PR description. Negative results are cheap and useful; don't
 re-run this comparison without a new external test set.
+
+## Results — v9 ships
+
+Execution diverged from plan in two useful ways and one useful failure:
+
+1. **v8** — what this doc prescribed (512→no: 256).
+2. **v9** — same recipe, `max_length=512`, only difference that matters. Straight upgrade.
+3. **Temperature scaling** — fitted on the val fold (2,118 rows, `scripts/fit_temperature.py`); NLL improved 0.7324 → 0.6983, T=1.343. Ships as `temperature.json` beside the ONNX.
+4. The v9 Colab run hit an `optimum-cli`-blocked environment (Python 3.13 + incompatible `huggingface_hub`), so the export pathway documented here (`optimum-cli`) did not survive contact with reality. The actual path: `torch.onnx.export(..., dynamo=False)` + `onnxruntime.quantization.quantize_dynamic`. The recipe file referenced there is `docs/classifier_max_performance.ipynb`, which is now the canonical fine-tuning entry point.
+
+| Model | Macro F1 | Accuracy | Suicidal F1 | Adversarial | Long (>260 tokens) |
+|---|---|---|---|---|---|
+| sklearn v7 | 0.645 | 0.664 | 0.71 | 29/39 | 0.614 |
+| v8 | 0.722 | 0.714 | 0.75 | 30/39 | 0.586 (truncated) |
+| **v9** | **0.742** | **0.734** | **0.82→0.83 F1** | **36/39** | **0.743** |
+_v9 full metrics: see `data/model_metadata.json` and README §Evaluation.

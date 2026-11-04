@@ -46,7 +46,7 @@ SENTI-MIND is an AI-powered mental health text analysis application that detects
 │  │  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐   ││
 │  │  │ Classifier      │  │ distilroberta    │  │ OpenRouter       │   ││
 │  │  │ (v7 sklearn /   │  │ (local ONNX)     │  │ free slugs       │   ││
-│  │  │  v8 ONNX)       │  │ emotions         │  │                  │   ││
+│  │  │ v9 ONNX)       │  │ emotions         │  │                  │   ││
 │  │  └─────────────────┘  └──────────────────┘  └──────────────────┘   ││
 │  └────────────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────────────┘
@@ -106,8 +106,8 @@ SENTI-MIND/
 │   │   │   ├── constants.py              # Thresholds, categories
 │   │   │   └── preprocessing.py          # Shared ML text preprocessor
 │   │   ├── models/
-│   │   │   ├── classifier.py             # ClinicalClassifier (sklearn LinearSVC v7; auto-selects v8)
-│   │   │   ├── classifier_onnx.py        # ClinicalClassifierONNX (v8; local INT8 ONNX)
+│   │   │   ├── classifier.py             # ClinicalClassifier (sklearn LinearSVC v7; auto-selects v9)
+│   │   │   ├── classifier_onnx.py        # ClinicalClassifierONNX (v9; local INT8 ONNX, max_length=512, temp-scaled)
 │   │   │   ├── emotions.py               # Local ONNX emotion detection
 │   │   │   ├── llm.py                    # OpenRouter insight generation
 │   │   │   └── schemas.py                # Pydantic request/response models
@@ -119,7 +119,7 @@ SENTI-MIND/
 │   │   ├── Combined Data.csv             # Generated, gitignored (2,779 unique synthetic sentences)
 │   │   ├── sentiment_model.joblib        # Calibrated LinearSVC (v7, sklearn fallback)
 │   │   ├── vectorizer.joblib             # TF-IDF vectorizer (v7, sklearn fallback)
-│   │   ├── classifier_onnx/              # v8 transformer (local ONNX INT8, auto-selected)
+│   │   ├── classifier_onnx/              # v9 transformer (local ONNX INT8, auto-selected)
 │   │   └── model_metadata.json           # Metrics, leakage stats, versions, SHA-256 hashes
 │   ├── scripts/
 │   │   ├── generate_training_data.py     # Writes every unique pool sentence once
@@ -178,7 +178,7 @@ SENTI-MIND/
 
 ---
 
-### 2. Clinical Classifier (`app/models/classifier.py` v7 sklearn / `app/models/classifier_onnx.py` v8 transformer; auto-selected)
+### 2. Clinical Classifier (`app/models/classifier.py` v7 sklearn / `app/models/classifier_onnx.py` v9 transformer; auto-selected)
 
 **Class:** `ClinicalClassifier`
 
@@ -328,12 +328,12 @@ for near-duplicate clustering, which is infeasible at this size.
 Sources are CC-BY-NC / research-use (SWMH) and research-use (Dreaddit), weak-supervision
 community labels; **the classifier is not clinically validated**. v6's 0.814 macro F1 on
 synthetic text was not comparable — on real Reddit rows that v6 model scores only 0.401,
-which is why v7 exists. Known limitations are documented in README (negation hard negatives; weak Stress recall for v7 — v8 lifts it; Reddit ≠ journal entries).
+which is why v7 exists. Known limitations are documented in README (negation hard negatives; weak Stress recall for v7 — v9 lifts it; Reddit ≠ journal entries).
 
-> **v8 supersedes v7 as the default backend** (`app/models/classifier.py`): same split, same data —
-> a distilroberta fine-tune rather than TF-IDF+LinearSVC (`docs/FINE_TUNING.md`). Macro F1 0.722 vs 0.645,
-> accuracy 0.714 vs 0.664, Stress recall 0.85 vs 0.44, adversarial 30/39. v7 stays shipped as the sklearn
-> fallback. The caveats above apply to v8 identically.
+> **v9 supersedes v7 and v8 as the default backend** (`app/models/classifier.py`): same split, same data —
+> max_length=512 distilroberta fine-tune with temperature-scaled softmax (`docs/classifier_max_performance.ipynb`).
+> Macro F1 0.742 vs 0.645/0.722, accuracy 0.734 vs 0.664/0.714, Stress recall 0.88 vs 0.44/0.85, adversarial 36/39.
+> v7 stays shipped as the sklearn fallback. The caveats above apply to v9 identically.
 
 After any change to `app/core/preprocessing.py` or the training data, regenerate, retrain
 and run `pytest tests/test_classifier.py`; keep `scikit-learn` in `requirements.txt` equal
@@ -375,5 +375,5 @@ The app's crisis banner and chat agent point to Pakistan services:
 ---
 
 **Last Updated:** October 2026
-**Version:** v7 sklearn (LinearSVC TF-IDF) · v8 transformer (distilroberta fine-tune, INT8 ONNX; default when present). See README §Evaluation (models v7 & v8) for the side-by-side.
+**Version:** v7 sklearn (LinearSVC TF-IDF) · v9 transformer (distilroberta fine-tune at max_length=512 with temperature-scaled softmax; INT8 ONNX; default when present). See README §Evaluation (models v7, v8 & v9) for the side-by-side.
 **Maintainer:** Future agents - read this before making changes!

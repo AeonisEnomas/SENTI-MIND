@@ -34,6 +34,7 @@ _UNKNOWN_RESULT = {"category": "Unknown", "confidence": 0.0, "top_categories": [
 CONFIDENCE_THRESHOLD = 0.35
 AMBIGUITY_MARGIN = 0.10
 MIN_MEANINGFUL_WORDS = 3
+# Module default; overridden per-load via sidecar/export detection (v9 trained at 512).
 MAX_TOKENS = 256
 # Fallback class order if the exported config.json can't be parsed.
 _FALLBACK_LABELS = sorted(["Anxiety", "Depression", "Normal", "Stress", "Suicidal"])
@@ -46,6 +47,26 @@ class ClassifierNotLoadedError(RuntimeError):
 def available() -> bool:
     """True if the ONNX artifacts are present locally (used by the backend auto-select)."""
     return _MODEL_PATH.is_file() and _TOKENIZER_PATH.is_file()
+
+
+def detection_version() -> str | None:
+    """Model-version marker written at export time (e.g. 'v9'); None -> assume v7/v8 generation."""
+    try:
+        return (_MODEL_DIR / "MODEL_VERSION").read_text().strip()
+    except Exception:
+        return None
+
+
+def read_temperature() -> float:
+    """Temperature scalar fitted offline on the validation fold (softmax calibration).
+
+    1.0 = identity (ships with v8 by design); >1 spreads probabilities honestly so
+    confidence_tier bands mean something again. Reads temperature.json if present.
+    """
+    try:
+        return float(json.loads((_MODEL_DIR / "temperature.json").read_text())["temperature"])
+    except Exception:
+        return 1.0
 
 
 def _sha256(path: Path) -> str:
@@ -67,7 +88,9 @@ class ClinicalClassifierONNX:
         self._session = None
         self._tokenizer = None
         self._id2label: dict[int, str] | None = None
-        self.model_version: str | None = "v8"
+        self.model_version: str | None = detection_version() or "v8"
+        self._temperature = read_temperature()
+        self._max_tokens = MAX_TOKENS if self.model_version == "v8" else 512
         self._lock = threading.Lock()
 
     @property
@@ -109,7 +132,7 @@ class ClinicalClassifierONNX:
             self._id2label = {i: label for i, label in enumerate(_FALLBACK_LABELS)}
 
         tokenizer = Tokenizer.from_file(str(_TOKENIZER_PATH))
-        tokenizer.enable_truncation(max_length=MAX_TOKENS)
+        tokenizer.enable_truncation(max_length=self._max_tokens)
         session = ort.InferenceSession(str(_MODEL_PATH), providers=["CPUExecutionProvider"])
         self._tokenizer, self._session = tokenizer, session
         logger.info("ClinicalClassifier v8 (local ONNX) loaded. Classes: %s", list(self._id2label.values()))
@@ -151,7 +174,8 @@ class ClinicalClassifierONNX:
             "attention_mask": np.array([encoded.attention_mask], dtype=np.int64),
         }
         logits = self._session.run(None, feed)[0][0].astype(np.float64)
-        probs = np.exp(logits - logits.max())
+        scaled = logits / self._temperature
+        probs = np.exp(scaled - scaled.max())
         probs /= probs.sum()
 
         labels = [self._id2label[i] for i in range(len(self._id2label))]

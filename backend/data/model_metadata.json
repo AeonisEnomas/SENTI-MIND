@@ -200,32 +200,32 @@
   },
   "has_calibration": true,
   "preprocessing": "shared app.core.preprocessing (contractions + negation_scope + intensity + temporal + crisis)",
-  "onnx_v8": {
-    "description": "distilroberta-base fine-tuned on the same group-aware split as v7 (balanced SWMH+Dreaddit mixed corpus), INT8-quantised ONNX. Produced via docs/FINE_TUNING.md recipe; selected automatically by app.models.classifier when present (CLASSIFIER_BACKEND=auto|onnx).",
-    "model_version": "v8",
+  "onnx_v9": {
+    "description": "distilroberta-base fine-tuned at max_length=512 on the same group-aware fold-0 holdout (v9); INT8 ONNX. Recipe in docs/classifier_max_performance.ipynb.",
+    "model_version": "v9",
     "files": {
-      "app/models/classifier_onnx/model_int8.onnx": "e0db31ae868a4bf9792f56dd2ed5c055be665ab69a19eabcfd41a63da0aee452",
+      "app/models/classifier_onnx/model_int8.onnx": "3efeae4223802cf93626dea796155a918b8a9c6c83ccc9d13ed415de1ccff20d",
       "app/models/classifier_onnx/tokenizer.json": "847bbeab6174d66a88898f729d52fa8d355fafe1bea101cf960dd404581df70e",
       "app/models/classifier_onnx/config.json": "bb5b155d79499ddaf544309ba9a1e6cd09eddfd5b3d8bb2fd2ce8addccf79756"
     },
     "evaluation": {
-      "split": "identical fold-0 holdout as v7 (group-aware, random_state=42)",
-      "accuracy": 0.7142,
-      "macro_f1": 0.7224,
+      "split": "fold 0 of StratifiedGroupKFold(5, shuffle=True, random_state=42), identical to v7/v8",
+      "accuracy": 0.7344,
+      "macro_f1": 0.742,
       "per_class_f1": {
-        "Anxiety": 0.82,
-        "Depression": 0.57,
-        "Normal": 0.69,
-        "Stress": 0.8,
-        "Suicidal": 0.72
+        "Anxiety": 0.84,
+        "Depression": 0.6,
+        "Normal": 0.71,
+        "Stress": 0.81,
+        "Suicidal": 0.75
       },
-      "suicidal_recall": 0.753,
-      "stress_recall": 0.85,
-      "adversarial_spot_check": "30/39",
-      "vs_v7": {
-        "macro_f1": "+0.077",
-        "accuracy": "+0.050",
-        "stress_recall": "+0.41"
+      "suicidal_recall": 0.77,
+      "stress_recall": 0.88,
+      "adversarial_spot_check": "36/39",
+      "vs_v8": {
+        "macro_f1": "+0.020",
+        "accuracy": "+0.020",
+        "adversarial": "+6"
       }
     },
     "calibration_note": "softmax over logits, NOT calibrated like v7's sigmoid-calibrated LinearSVC \u2014 treat confidence_tier bands as directional.",

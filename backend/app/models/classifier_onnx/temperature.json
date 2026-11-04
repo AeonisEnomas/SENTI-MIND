@@ -1,0 +1,6 @@
+{
+  "temperature": 1.3429,
+  "fitted_on": "val.csv (2,118 rows; mild selection bias \u2014 refit on untouched holdout for commercial use)",
+  "nll_before": 0.7324,
+  "nll_after": 0.6983
+}
