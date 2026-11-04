@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 
 /**
- * SentiBotAvatar — Premium EVE-style Therapist Companion Bot.
+ * SentiBotAvatar: animated SVG mascot whose face reflects an emotion or loading state.
  *
  * Props:
  *  - emotion: "Normal"|"Stress"|"Anxiety"|"Depression"|"Suicidal"|"idle"|"loading"|null
@@ -276,7 +276,7 @@ export default function SentiBotAvatar({
           className="sentibot-casing"
         />
 
-        {/* ─── THERAPIST ACCENTS ─── */}
+        {/* ─── ACCENTS ─── */}
         {/* Side Silicone Grips */}
         <rect x={10 * s} y={45 * s} width={4 * s} height={30 * s} rx={2 * s} fill="#a8d5ba" opacity="0.8" />
         <rect x={106 * s} y={45 * s} width={4 * s} height={30 * s} rx={2 * s} fill="#a8d5ba" opacity="0.8" />

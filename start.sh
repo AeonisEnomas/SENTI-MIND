@@ -110,7 +110,7 @@ fi
 if [ ! -f "$PROJECT_DIR/.env" ] && [ -f "$PROJECT_DIR/.env.example" ]; then
     echo -e "${YELLOW}Creating .env from .env.example...${NC}"
     cp "$PROJECT_DIR/.env.example" "$PROJECT_DIR/.env"
-    echo -e "${RED}IMPORTANT: Fill in .env (Supabase keys, HF_API_TOKEN, OPENROUTER_API_KEY) before using the app.${NC}"
+    echo -e "${RED}IMPORTANT: Fill in the Supabase keys in .env (OPENROUTER_API_KEY is optional) before using the app.${NC}"
 fi
 
 # Check and install frontend dependencies
