@@ -13,9 +13,9 @@ const AMBIENT_DIALOGUES = [
 const ROUTE_DIALOGUES = {
   "/dashboard": "Welcome to your Journal. This is a safe space to write down your thoughts. I'll analyze your entries to help you understand your emotional state.",
   "/dashboard/heatmap": "This is the Mood Heatmap. Here we can visualize your emotional journey over time through color patterns.",
-  "/dashboard/history": "This is your History. You can review all your past entries and clinical analyses here.",
-  "/dashboard/gratitude": "Welcome to the Gratitude Jar! Taking a moment to appreciate the little things does wonders for mental health.",
-  "/dashboard/screener": "Here is the Clinical Screener. You can take standardized mental health assessments to keep track of your clinical symptoms.",
+  "/dashboard/history": "This is your History. You can review all your past entries and their analyses here.",
+  "/dashboard/gratitude": "Welcome to your Gratitude Jar! Taking a moment to appreciate the little things does wonders for mental health.",
+  "/dashboard/screener": "Here is the Check-in. Two short standard questionnaires help you keep track of how you've been feeling.",
   "/dashboard/wellness": "These are your Wellness Tools. Explore breathing exercises and grounding techniques to center yourself.",
 };
 
@@ -85,12 +85,7 @@ export default function SentiBotFAB({ emotion = null }) {
   return (
     <div className="sentibot-fab animate-medical-fade-in" style={{ zIndex: 9999 }}>
       {bubble && (
-        <div
-          className="sentibot-speech-bubble"
-          onClick={() => navigate("/dashboard/chat")}
-          role="status"
-          aria-live="polite"
-        >
+        <div className="sentibot-speech-bubble" role="status" aria-live="polite">
           {bubble.text}
         </div>
       )}

@@ -44,7 +44,7 @@ export default function CrisisAlertBanner({ isVisible = false, severity = "criti
     >
       <div className={`${v.container} p-6 rounded-2xl shadow-medical-lg`}>
         <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0 backdrop-blur-sm" aria-hidden="true">
+          <div className="w-14 h-14 rounded-2xl bg-white/20 hidden sm:flex items-center justify-center flex-shrink-0 backdrop-blur-sm" aria-hidden="true">
             <Heart className={`w-7 h-7 ${isCritical ? "animate-pulse" : "text-rose-500"}`} />
           </div>
 
@@ -52,13 +52,14 @@ export default function CrisisAlertBanner({ isVisible = false, severity = "criti
             <h2 className="text-xl font-bold mb-2">{v.heading}</h2>
             <p className={`${v.subtle} text-sm leading-relaxed mb-5`}>{v.body}</p>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            {/* One column: side by side, the phone number overlapped the service name in the journal column. */}
+            <div className="grid gap-3">
               {CRISIS_RESOURCES.map((resource) => (
                 <a
                   key={resource.id}
                   href={telHref(resource.phone)}
                   aria-label={`${resource.action}: ${resource.name}, ${resource.phone}`}
-                  className={`flex items-center gap-3 p-4 rounded-xl transition-all group border ${v.card}`}
+                  className={`flex flex-wrap items-center gap-3 p-4 rounded-xl transition-all group border ${v.card}`}
                 >
                   <div
                     className={`w-11 h-11 rounded-xl ${resource.emphasis === "primary" ? "bg-medical-emergency" : "bg-sage-600"} flex items-center justify-center flex-shrink-0 shadow-lg`}
@@ -67,10 +68,11 @@ export default function CrisisAlertBanner({ isVisible = false, severity = "criti
                     <Phone className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{resource.name}</p>
+                    <p className="font-semibold text-sm">{resource.name}</p>
                     <p className={`${v.subtle} text-xs opacity-90`}>{resource.description}</p>
                   </div>
-                  <div className="text-right">
+                  {/* Wraps under the name on narrow screens so the number is never pushed off-screen. */}
+                  <div className="text-right ml-auto">
                     <span className="text-lg sm:text-2xl font-bold block whitespace-nowrap">{resource.phone}</span>
                     <span className="text-xs opacity-75">{resource.action}</span>
                   </div>

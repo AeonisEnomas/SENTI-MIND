@@ -137,7 +137,7 @@ export default function RiskBadge({
             <div className="space-y-3">
               {components.clinical > 0 && (
                 <div className="flex items-center gap-3">
-                  <span className="w-20 text-xs text-warm-600 font-medium">Clinical</span>
+                  <span className="w-20 text-xs text-warm-600 font-medium">Category</span>
                   <div className="flex-1 h-2 rounded-full bg-warm-100 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-sage-400 to-sage-500 rounded-full transition-all duration-700"

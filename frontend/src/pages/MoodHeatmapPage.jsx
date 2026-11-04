@@ -59,7 +59,7 @@ export default function MoodHeatmapPage() {
         <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-sage-100/50 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-sage-200/50 shadow-sm mb-3">
           <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sage-600" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
         </div>
-        <h1 className="text-2xl sm:text-4xl font-light text-warm-800 tracking-tight">Clinical <span className="font-semibold text-sage-700">Heatmap</span></h1>
+        <h1 className="text-2xl sm:text-4xl font-light text-warm-800 tracking-tight">Mood <span className="font-semibold text-sage-700">Heatmap</span></h1>
         <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
           Pattern recognition of your longitudinal emotional states across the past 30 days.
         </p>
@@ -115,7 +115,7 @@ export default function MoodHeatmapPage() {
           </div>
         </div>
 
-        {/* Right Col: AI Clinical Insight */}
+        {/* Right Col: trend insight */}
         <div className="bg-sage-50/80 backdrop-blur-xl border border-sage-200/60 p-8 rounded-3xl shadow-sm flex flex-col relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-sage-200/40 rounded-full blur-3xl pointer-events-none"></div>
           

@@ -14,7 +14,7 @@ export default function ClinicalConfidenceBars({
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div>
-            <p className="medical-label mb-2">Clinical Assessment</p>
+            <p className="medical-label mb-2">Category Estimate</p>
             <div className="flex items-center gap-3">
               <span className="text-3xl">{primaryIcon}</span>
               <div>

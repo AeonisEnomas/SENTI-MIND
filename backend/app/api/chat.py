@@ -32,6 +32,10 @@ class ChatRequest(BaseModel):
     # put words in the assistant's mouth. That only affects the caller's own conversation
     # (no server-side state or other users are involved), so we accept it, but cap its size.
     history: Optional[List[ChatMessage]] = Field(default=None, max_length=MAX_HISTORY_TURNS_ACCEPTED)
+    # Stored data the user attached via a quick action (past journals, mood trends, screener
+    # results). Sent to the model as context but kept out of the crisis pre-screen, which judges
+    # only what the user is saying now: an old crisis entry must not hijack every data review.
+    attachment: Optional[str] = Field(default=None, max_length=MAX_MESSAGE_CHARS)
 
 
 @router.post("/", dependencies=[Depends(chat_rate_limit)])
@@ -46,7 +50,8 @@ async def chat_with_agent(
         response_text = await agent_service.chat(
             user_id=user_id,
             message=payload.message,
-            history=formatted_history
+            history=formatted_history,
+            attachment=payload.attachment,
         )
         return {"response": response_text}
     except Exception as e:

@@ -68,9 +68,9 @@ export default function GratitudeJarPage() {
         <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-sage-100/50 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-sage-200/50 shadow-sm mb-3">
           <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sage-600" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
         </div>
-        <h1 className="text-2xl sm:text-4xl font-light text-warm-800 tracking-tight">The Gratitude <span className="font-semibold text-sage-700">Vault</span></h1>
+        <h1 className="text-2xl sm:text-4xl font-light text-warm-800 tracking-tight">Gratitude <span className="font-semibold text-sage-700">Jar</span></h1>
         <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
-          A collection of your highest energy positive moments. Reflect and recharge.
+          The good moments you chose to keep. Come back to them when you need a lift.
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export default function GratitudeJarPage() {
           <div className="col-span-full text-center py-24 bg-white/40 backdrop-blur-xl rounded-3xl border border-sage-200/50 shadow-sm">
             <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1" className="text-sage-300 mx-auto mb-4" viewBox="0 0 24 24"><path d="M20 12v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/><path d="M10 9H8m2 4H8m2 4H8"/><path d="M22 6.5A3.5 3.5 0 0 0 18.5 3c-1.76 0-3 .5-4.5 2 1.5 1.5 2.74 2 4.5 2A3.5 3.5 0 0 0 22 6.5Z"/></svg>
             <p className="text-warm-500 font-medium">No positive indicators recorded yet.</p>
-            <p className="text-xs text-warm-400 mt-2">When positive sentiment is manually marked in your journal, it will be securely catalogued here.</p>
+            <p className="text-xs text-warm-400 mt-2">After a journal entry is read as positive, tap "Add to Jar" under it to keep it here.</p>
           </div>
         ) : (
           snippets.map((snip) => (

@@ -726,6 +726,8 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  /* Only the avatar button takes clicks; the rest of the box must not block page controls. */
+  pointer-events: none;
 }
 
 @media (min-width: 768px) {
@@ -736,6 +738,7 @@ body {
 }
 
 .sentibot-fab-inner {
+  pointer-events: auto;
   width: 76px;
   height: 76px;
   border-radius: 50%;
@@ -792,8 +795,15 @@ body {
   position: relative;
   transform-origin: right center;
   animation: sentibot-bubble-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  cursor: pointer;
-  pointer-events: auto;
+  /* Informational only: clicks pass through to whatever the bubble overlaps. */
+  pointer-events: none;
+}
+
+/* On phones the bubble always lands on top of page content, so only the avatar is shown. */
+@media (max-width: 767px) {
+  .sentibot-speech-bubble {
+    display: none;
+  }
 }
 
 .sentibot-speech-bubble::after {
@@ -805,12 +815,6 @@ body {
   border-width: 6px 0 6px 6px;
   border-style: solid;
   border-color: transparent transparent transparent rgba(255, 255, 255, 0.95);
-}
-
-.sentibot-speech-bubble:hover {
-  background: white;
-  transform: scale(1.02);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 @keyframes sentibot-bubble-pop {
