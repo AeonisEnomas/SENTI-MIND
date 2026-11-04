@@ -299,7 +299,7 @@ export default function JournalPage() {
 
                <div className="medical-card p-5">
                  <p className="text-[10px] font-bold uppercase tracking-wider text-warm-500 mb-4">Emotional Breakdown</p>
-                 <Suspense fallback={<PageLoader label="Loading chart..." size="sm" className="h-72 py-0" />}>
+                 <Suspense fallback={<PageLoader label="Loading chart" size="sm" className="h-72 py-0" />}>
                    <EmotionChart emotions={result.emotions ?? []} />
                  </Suspense>
                </div>

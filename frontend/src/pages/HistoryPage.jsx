@@ -50,7 +50,7 @@ export default function HistoryPage() {
     }
   };
 
-  if (loading) return <PageLoader label="Loading your history..." />;
+  if (loading) return <PageLoader label="Loading your history" slowHint />;
 
   if (loadError) {
     return (

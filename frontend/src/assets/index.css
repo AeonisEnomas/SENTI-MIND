@@ -853,3 +853,106 @@ body {
 .sentibot-waveform rect:nth-child(3) { animation: sentibot-waveform-anim 1.5s ease-in-out infinite 0.2s; }
 .sentibot-waveform rect:nth-child(4) { animation: sentibot-waveform-anim 1.5s ease-in-out infinite 0.5s; }
 
+
+/* ─── SentiBot page loader ─── */
+.sentibot-loader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Thin progress arc circling the bot. */
+.sentibot-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(92, 138, 96, 0.9) 300deg, transparent 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  animation: sentibot-loader-spin 1.6s linear infinite;
+}
+
+.sentibot-loader-orbit {
+  position: absolute;
+  inset: 6%;
+  animation: sentibot-loader-spin 3.2s linear infinite;
+}
+.sentibot-loader-orbit--reverse {
+  inset: 16%;
+  animation-duration: 4.5s;
+  animation-direction: reverse;
+}
+
+.sentibot-loader-spark {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 9999px;
+  background: #a8d5ba;
+  box-shadow: 0 0 10px 3px rgba(168, 213, 186, 0.8);
+}
+.sentibot-loader-spark--small {
+  top: auto;
+  bottom: 0;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  background: #7aa07d;
+}
+
+.sentibot-loader-float {
+  position: relative;
+  z-index: 1;
+  animation: sentibot-loader-float 2.4s ease-in-out infinite;
+}
+
+.sentibot-loader-shadow {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  width: 34%;
+  height: 7%;
+  margin-left: -17%;
+  border-radius: 50%;
+  background: rgba(61, 82, 61, 0.18);
+  filter: blur(2px);
+  animation: sentibot-loader-shadow 2.4s ease-in-out infinite;
+}
+
+.sentibot-loader-dots span {
+  display: inline-block;
+  animation: sentibot-loader-dot 1.2s ease-in-out infinite;
+}
+.sentibot-loader-dots span:nth-child(2) { animation-delay: 0.15s; }
+.sentibot-loader-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes sentibot-loader-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes sentibot-loader-float {
+  0%, 100% { transform: translateY(4px); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes sentibot-loader-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.9; }
+  50% { transform: scaleX(0.65); opacity: 0.45; }
+}
+@keyframes sentibot-loader-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Thinking eyes: scan left and right, a fraction of the visor width at any avatar size. */
+.sentibot-scan-eyes {
+  transform-box: fill-box;
+  animation: sentibot-scan-eyes 1.8s ease-in-out infinite;
+}
+@keyframes sentibot-scan-eyes {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-12%); }
+  75% { transform: translateX(12%); }
+}

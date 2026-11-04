@@ -137,8 +137,11 @@ function Eyes({ shape, size, primary }) {
     case "blink":
       return (
         <g className="sentibot-led-glow sentibot-blink">
-          <circle cx={cx1 * s} cy={cy * s} r={4 * s} fill="none" stroke={primary} strokeWidth={strokeWidth} />
-          <circle cx={cx2 * s} cy={cy * s} r={4 * s} fill="none" stroke={primary} strokeWidth={strokeWidth} />
+          {/* Eyes scan side to side while thinking, so loaders read as busy. */}
+          <g className="sentibot-scan-eyes">
+            <circle cx={cx1 * s} cy={cy * s} r={4 * s} fill="none" stroke={primary} strokeWidth={strokeWidth} />
+            <circle cx={cx2 * s} cy={cy * s} r={4 * s} fill="none" stroke={primary} strokeWidth={strokeWidth} />
+          </g>
         </g>
       );
     default: // relaxed

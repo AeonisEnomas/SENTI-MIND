@@ -37,7 +37,7 @@ export default function MoodHeatmapPage() {
     };
   }, [reloadKey]);
 
-  if (loading) return <PageLoader label="Loading your heatmap..." />;
+  if (loading) return <PageLoader label="Loading your heatmap" slowHint />;
 
   if (error) {
     return (
