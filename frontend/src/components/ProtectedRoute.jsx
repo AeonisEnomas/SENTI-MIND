@@ -1,18 +1,12 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import PageLoader from "./PageLoader";
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-sage-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-sage-300 border-t-sage-600 rounded-full animate-spin" />
-          <p className="text-sm text-warm-500 font-medium">Loading...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader fullScreen size="lg" />;
   }
 
   if (!user) {

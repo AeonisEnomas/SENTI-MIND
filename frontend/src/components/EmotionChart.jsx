@@ -78,35 +78,26 @@ export default function EmotionChart({ emotions }) {
     <div className="space-y-6">
       {/* Dominant Emotion Display */}
       <div
-        className="relative overflow-hidden rounded-2xl p-6 transition-all"
+        className="relative overflow-hidden rounded-2xl p-5 transition-all"
         style={{
           background: `linear-gradient(135deg, ${dominantColor}12 0%, ${dominantColor}05 100%)`,
           border: `1px solid ${dominantColor}25`,
         }}
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="medical-label text-xs mb-2 opacity-70">Dominant Emotion</p>
-            <div className="flex items-center gap-3">
-              <span className="text-4xl" aria-hidden="true">{dominantIcon}</span>
-              <div>
-                <p
-                  className="text-2xl font-bold capitalize"
-                  style={{ color: dominantColor }}
-                >
-                  {dominantLabel}
-                </p>
-                <p className="text-sm text-warm-500 mt-0.5">
-                  {(dominantEmotion.score * 100).toFixed(0)}% confidence
-                </p>
-              </div>
-            </div>
-          </div>
-          <div 
-            className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-medical"
-            style={{ backgroundColor: dominantColor }}
-          >
-            {(dominantEmotion.score * 100).toFixed(0)}
+        <p className="medical-label text-xs mb-3 opacity-70">Dominant Emotion</p>
+        {/* Single row that shrinks with the column: the label truncates instead of running under the score. */}
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-4xl flex-shrink-0" aria-hidden="true">{dominantIcon}</span>
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-2xl font-bold capitalize truncate"
+              style={{ color: dominantColor }}
+            >
+              {dominantLabel}
+            </p>
+            <p className="text-sm text-warm-500 mt-0.5 whitespace-nowrap">
+              {(dominantEmotion.score * 100).toFixed(0)}% confidence
+            </p>
           </div>
         </div>
       </div>

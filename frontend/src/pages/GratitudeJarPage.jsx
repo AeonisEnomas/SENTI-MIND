@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listGratitude, deleteGratitude } from "../services/journalService";
 import { getErrorMessage } from "../lib/errors";
+import PageLoader from "../components/PageLoader";
 
 export default function GratitudeJarPage() {
   const [snippets, setSnippets] = useState([]);
@@ -49,7 +50,7 @@ export default function GratitudeJarPage() {
     }
   };
 
-  if (loading) return <div className="text-center py-10" role="status">Loading jar...</div>;
+  if (loading) return <PageLoader label="Opening your jar..." />;
 
   if (loadError) {
     return (

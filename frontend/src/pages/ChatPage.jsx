@@ -180,7 +180,7 @@ export default function ChatPage() {
             <div className="flex-shrink-0 mr-2 mt-1">
               <SentiBotAvatar emotion="loading" size="sm" animate={true} />
             </div>
-            <div className="bg-white border border-sage-100 shadow-sm rounded-2xl rounded-bl-sm p-4 text-warm-800 text-sm flex gap-1" aria-hidden="true">
+            <div className="bg-white border border-sage-100 shadow-sm rounded-2xl rounded-bl-sm p-4 text-warm-800 text-sm flex items-center gap-1" aria-hidden="true">
               <span className="w-2 h-2 bg-sage-400 rounded-full animate-bounce"></span>
               <span className="w-2 h-2 bg-sage-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
               <span className="w-2 h-2 bg-sage-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>

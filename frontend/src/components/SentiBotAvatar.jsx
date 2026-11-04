@@ -98,7 +98,7 @@ function Eyes({ shape, size, primary }) {
       return (
         <g className="sentibot-led-glow sentibot-blink-natural">
           <g className="sentibot-look-around">
-            <path d={`M${cx1 - r * s} ${cy * s} Q${cx1 * s} ${(cy - 8) * s} ${(cx1 + r) * s} ${cy * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
+            <path d={`M${(cx1 - r) * s} ${cy * s} Q${cx1 * s} ${(cy - 8) * s} ${(cx1 + r) * s} ${cy * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
             <path d={`M${(cx2 - r) * s} ${cy * s} Q${cx2 * s} ${(cy - 8) * s} ${(cx2 + r) * s} ${cy * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
           </g>
         </g>
@@ -129,7 +129,7 @@ function Eyes({ shape, size, primary }) {
     case "sad":
       return (
         <g className="sentibot-led-glow">
-          <path d={`M${cx1 - r * s} ${(cy+2) * s} Q${cx1 * s} ${(cy - 4) * s} ${(cx1 + r) * s} ${(cy+2) * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
+          <path d={`M${(cx1 - r) * s} ${(cy+2) * s} Q${cx1 * s} ${(cy - 4) * s} ${(cx1 + r) * s} ${(cy+2) * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
           <path d={`M${(cx2 - r) * s} ${(cy+2) * s} Q${cx2 * s} ${(cy - 4) * s} ${(cx2 + r) * s} ${(cy+2) * s}`} stroke={primary} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
           <rect x={(cx1 + 4) * s} y={(cy + 8) * s} width={3 * s} height={6 * s} rx={1.5 * s} fill={primary} className="sentibot-tear" />
         </g>

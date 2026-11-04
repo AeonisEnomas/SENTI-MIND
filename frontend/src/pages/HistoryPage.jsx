@@ -3,6 +3,7 @@ import { getMoodTrends } from "../services/moodService";
 import { exportElementToPDF } from "../services/pdfService";
 import { getErrorMessage } from "../lib/errors";
 import { parseLocalDate } from "../lib/dates";
+import PageLoader from "../components/PageLoader";
 
 export default function HistoryPage() {
   const [trends, setTrends] = useState([]);
@@ -49,7 +50,7 @@ export default function HistoryPage() {
     }
   };
 
-  if (loading) return <div className="text-center py-10" role="status">Loading history...</div>;
+  if (loading) return <PageLoader label="Loading your history..." />;
 
   if (loadError) {
     return (
