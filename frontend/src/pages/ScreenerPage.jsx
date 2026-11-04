@@ -97,8 +97,8 @@ export default function ScreenerPage() {
            <div className="inline-flex items-center gap-2 px-3 py-1 bg-sage-100/50 border border-sage-200/60 rounded-lg text-sage-700 text-xs font-bold uppercase tracking-widest mb-1">
              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Standard Assessment
            </div>
-           <h1 className="text-2xl sm:text-4xl font-light text-warm-800 tracking-tight">Clinical <span className="font-semibold text-sage-700">Screener</span></h1>
-           <p className="text-warm-500 text-sm sm:text-base">Brief diagnostic check-in for anxiety (GAD-2) and depression (PHQ-2).</p>
+           <h1 className="text-2xl sm:text-4xl font-light text-warm-800 tracking-tight">Wellbeing <span className="font-semibold text-sage-700">Check-in</span></h1>
+           <p className="text-warm-500 text-sm sm:text-base">A short self-check using two standard questionnaires: GAD-2 (anxiety) and PHQ-2 (low mood). It is not a diagnosis.</p>
         </div>
       </div>
 
@@ -204,7 +204,7 @@ export default function ScreenerPage() {
               <div className="p-6 bg-rose-50/80 backdrop-blur-md border border-rose-200/60 rounded-2xl text-rose-800 text-sm text-left shadow-sm flex items-start gap-4">
                 <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="flex-shrink-0 mt-0.5 text-rose-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 <div className="flex-1">
-                   <strong className="block text-base mb-1 text-rose-900">Clinical Attention Recommended</strong>
+                   <strong className="block text-base mb-1 text-rose-900">Worth talking to someone</strong>
                    <span className="text-rose-700/90 leading-relaxed font-medium">Since one or both scores are elevated (3 or higher), it is highly recommended to share these results with a healthcare provider for a thorough evaluation and support.</span>
                 </div>
               </div>

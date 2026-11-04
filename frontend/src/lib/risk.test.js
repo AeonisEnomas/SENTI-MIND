@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getCrisisSeverity, isCriticalResult, shouldShowCrisisBanner } from "./risk";
+import { getCrisisSeverity, hasCrisisLanguage, isCriticalResult, shouldShowCrisisBanner } from "./risk";
 
 const result = (risk = {}, clinical = {}) => ({
   risk: { level: "low", score: 0.1, safety_protocol: false, ...risk },
@@ -47,5 +47,24 @@ describe("getCrisisSeverity", () => {
   it("tolerates partial results", () => {
     expect(getCrisisSeverity({})).toBeNull();
     expect(getCrisisSeverity({ risk: { safety_protocol: true } })).toBe("critical");
+  });
+});
+
+describe("hasCrisisLanguage", () => {
+  it("flags crisis phrases regardless of case or curly apostrophes", () => {
+    expect(hasCrisisLanguage("I want to END MY LIFE")).toBe(true);
+    expect(hasCrisisLanguage("I can’t go on like this")).toBe(true);
+    expect(hasCrisisLanguage("thinking about self-harm again")).toBe(true);
+  });
+
+  it("over-alerts on negation by design", () => {
+    expect(hasCrisisLanguage("I don't want to kill myself")).toBe(true);
+  });
+
+  it("ignores ordinary text and partial-word matches", () => {
+    expect(hasCrisisLanguage("Great day, finished my project")).toBe(false);
+    expect(hasCrisisLanguage("the suicidesquad movie")).toBe(false);
+    expect(hasCrisisLanguage("")).toBe(false);
+    expect(hasCrisisLanguage(null)).toBe(false);
   });
 });

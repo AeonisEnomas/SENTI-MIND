@@ -47,7 +47,7 @@ export default function RegisterPage() {
               Begin your journey to <span className="font-semibold">clarity</span>
             </h2>
             <p className="text-sage-50 text-lg font-light drop-shadow-sm">
-              Create your completely private mental health vault and unlock intelligent insights into your daily emotional patterns.
+              Create your private journal and get AI-powered insights into your daily emotional patterns.
             </p>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function RegisterPage() {
               </p>
               
               <div className="mt-12 text-center flex items-center justify-center gap-2 text-xs text-warm-400 font-medium">
-                 <span>🔒</span> E2E encryption enabled by default.
+                 <span>🔒</span> Only you can read your entries. Entries are analyzed by our server and an AI model to produce insights.
               </div>
             </>
           )}

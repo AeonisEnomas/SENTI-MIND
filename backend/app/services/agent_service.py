@@ -68,9 +68,11 @@ class AgentService:
             "- DO NOT output your internal therapeutic analysis, scratchpad, or drafting steps. Provide ONLY the final conversational response directly to the user."
         )
 
-    async def chat(self, user_id: str, message: str, history: list = None) -> str:
+    async def chat(self, user_id: str, message: str, history: list = None, attachment: str | None = None) -> str:
         # Deterministic crisis pre-screen first: never let a crisis moment ride on the LLM's
         # availability or judgement. Message content is never logged, only the trigger.
+        # Only the user's own words are screened; attached stored data goes to the model, whose
+        # system prompt covers risk found in the data.
         crisis = crisis_response_if_triggered(message)
         if crisis is not None:
             logger.warning("crisis pre-screen triggered for user %s — returning deterministic crisis response", user_id)
@@ -92,7 +94,8 @@ class AgentService:
         for turn in history:
             role = "assistant" if turn.get("role") == "model" else "user"
             messages.append({"role": role, "content": "\n".join(turn.get("parts", []))})
-        messages.append({"role": "user", "content": message})
+        content = f"{message}\n\n{attachment}" if attachment else message
+        messages.append({"role": "user", "content": content})
 
         try:
             text, _ = await openrouter.chat_completion(

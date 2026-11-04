@@ -288,6 +288,20 @@ def test_chat_success(client, captured_llm):
     assert captured_llm[0][-1] == {"role": "user", "content": "hi there"}
 
 
+def test_chat_attachment_reaches_llm_but_skips_crisis_prescreen(client, captured_llm):
+    # A past crisis entry in attached data must not turn a data review into the canned notice.
+    attachment = 'Attached Data (Journal Entries): [{"raw_text": "i want to end it all"}]'
+    r = client.post("/api/v1/chat/", json={"message": "Please review my recent journal entries.", "attachment": attachment})
+    assert r.status_code == 200 and r.json() == {"response": "agent reply"}
+    assert captured_llm[0][-1]["content"] == f"Please review my recent journal entries.\n\n{attachment}"
+
+
+def test_chat_crisis_in_message_still_short_circuits_with_attachment(client, captured_llm):
+    r = client.post("/api/v1/chat/", json={"message": "I want to kill myself", "attachment": "Attached Data: []"})
+    assert r.status_code == 200 and "1122" in r.json()["response"]
+    assert captured_llm == []
+
+
 @pytest.mark.parametrize("payload", [
     {"message": "x" * 4001},
     {"message": ""},
@@ -295,6 +309,7 @@ def test_chat_success(client, captured_llm):
     {"message": "hi", "history": [{"role": "user", "parts": ["a", "b", "c", "d"]}]},
     {"message": "hi", "history": [{"role": "user", "parts": ["x" * 4001]}]},
     {"message": "hi", "history": [{"role": "user", "parts": ["a"]}] * 51},
+    {"message": "hi", "attachment": "x" * 4001},
 ])
 def test_chat_validation(client, captured_llm, payload):
     assert client.post("/api/v1/chat/", json=payload).status_code == 422
@@ -409,7 +424,7 @@ def test_screener_success(client):
     assert r.status_code == 201
     body = r.json()
     assert body["gad2_score"] == 4 and body["phq2_score"] == 0
-    assert "Possible anxiety" in body["gad2_interpretation"]
+    assert "notable anxiety" in body["gad2_interpretation"]
 
 
 @pytest.mark.parametrize("payload", [

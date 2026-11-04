@@ -47,7 +47,7 @@ const NAV_LINKS = [
   },
   {
     to: "screener",
-    label: "Screener",
+    label: "Check-in",
     icon: (
       <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
@@ -297,7 +297,7 @@ export default function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto scroll-smooth">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-28 md:pb-8 md:py-8">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-28 md:py-8 md:pb-32">
             <Suspense fallback={<PageLoader />}>
               <Outlet />
             </Suspense>

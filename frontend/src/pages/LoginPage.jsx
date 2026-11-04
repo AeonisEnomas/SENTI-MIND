@@ -42,7 +42,7 @@ export default function LoginPage() {
               Your Personal Mental Health <span className="font-semibold">Vault</span>
             </h2>
             <p className="text-sage-50 text-lg font-light drop-shadow-sm">
-              Secure, localized, and intelligent. Track your emotional state entirely privately with AI-powered insights.
+              A private journal with AI-powered insights into your emotional patterns.
             </p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function LoginPage() {
           </p>
           
           <div className="mt-12 text-center flex items-center justify-center gap-2 text-xs text-warm-400 font-medium">
-             <span>🔒</span> Your data is private, encrypted, and secure.
+             <span>🔒</span> Only you can read your entries. Entries are analyzed by our server and an AI model to produce insights.
           </div>
         </div>
       </div>

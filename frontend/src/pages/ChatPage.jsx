@@ -5,7 +5,7 @@ import { getMoodTrends } from "../services/moodService";
 import { getScreenerHistory } from "../services/screenerService";
 import ReactMarkdown from "react-markdown";
 import SentiBotAvatar from "../components/SentiBotAvatar";
-import { buildChatHistory, composeChatPayload, MAX_MESSAGE_CHARS } from "../lib/chatHistory";
+import { buildChatHistory, composeChatPayload, truncateText, MAX_MESSAGE_CHARS } from "../lib/chatHistory";
 import { getErrorMessage, isRateLimited } from "../lib/errors";
 
 const QUICK_ACTIONS = [
@@ -25,7 +25,7 @@ const ATTACHED_JOURNAL_CHARS = 500;
 
 const GREETING = {
   role: "model",
-  parts: ["Hi there! I'm Senti-Agent. You can ask me for advice, or use the quick buttons below to attach your data to your message so we can review it together."],
+  parts: ["Hi there! I'm SentiBot. You can ask me for advice, or use the quick buttons below to attach your data to your message so we can review it together."],
   excludeFromHistory: true,
 };
 
@@ -107,7 +107,11 @@ export default function ChatPage() {
       // while the bubble keeps showing only what the user typed.
       setMessages((prev) => prev.map((m) => (m.id === userTurn.id ? { ...m, sentContent: payload } : m)));
 
-      const responseData = await chatService.sendMessage(payload, history);
+      const responseData = await chatService.sendMessage(
+        truncateText(userMessage, MAX_MESSAGE_CHARS),
+        history,
+        truncateText(attachedText, MAX_MESSAGE_CHARS),
+      );
 
       setMessages((prev) => [...prev, { role: "model", parts: [responseData.response] }]);
     } catch (error) {
@@ -134,7 +138,7 @@ export default function ChatPage() {
         <SentiBotAvatar emotion="idle" size="md" animate={true} />
         <div>
           <h2 className="font-semibold text-warm-800">SentiBot</h2>
-          <p className="text-xs text-sage-600 font-medium">AI Therapist Companion</p>
+          <p className="text-xs text-sage-600 font-medium">AI wellbeing companion · not a therapist</p>
         </div>
       </div>
 

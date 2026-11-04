@@ -47,7 +47,7 @@ export default function GratitudeModal({ isOpen, onClose, isError }) {
                <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
             </div>
             <h2 id="gratitude-modal-title" className="text-2xl font-bold text-warm-800 tracking-tight mb-2">Secured in Vault</h2>
-            <p className="text-warm-500 font-medium mb-8 leading-relaxed">Your positive indicator has been safely cataloged in your Gratitude Vault.</p>
+            <p className="text-warm-500 font-medium mb-8 leading-relaxed">This entry has been saved to your Gratitude Jar.</p>
             <button
               onClick={onClose}
               className="inline-flex w-full items-center justify-center gap-2 px-8 py-3.5 bg-sage-700 hover:bg-sage-800 text-white font-semibold rounded-2xl shadow-medical transition-all duration-300 hover:scale-[1.02] hover:shadow-medical-lg"

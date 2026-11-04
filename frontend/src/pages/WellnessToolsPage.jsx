@@ -9,7 +9,7 @@ export default function WellnessToolsPage() {
         <div className="absolute top-0 right-10 w-64 h-64 bg-sage-200/30 rounded-full blur-3xl pointer-events-none -z-10"></div>
         <div className="space-y-1">
            <div className="inline-flex items-center gap-2 px-3 py-1 bg-sage-100/50 border border-sage-200/60 rounded-lg text-sage-700 text-xs font-bold uppercase tracking-widest mb-1">
-             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Clinical Tools
+             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg> Calming Tools
            </div>
            <h1 className="text-2xl sm:text-4xl font-light text-warm-800 tracking-tight">Wellness <span className="font-semibold text-sage-700">Hub</span></h1>
            <p className="text-warm-500 text-sm sm:text-base">Immediate relief techniques for moments of high stress or panic.</p>
@@ -91,8 +91,8 @@ function BoxBreather() {
 
   return (
     <div className="text-center animate-medical-fade-in w-full relative z-10">
-      <h2 className="text-2xl font-bold text-sage-800 tracking-tight mb-2">Box Breathing Protocol</h2>
-      <p className="text-warm-500 font-medium mb-20 max-w-sm mx-auto">Tactical combat breathing to calm the nervous system and interrupt panic responses.</p>
+      <h2 className="text-2xl font-bold text-sage-800 tracking-tight mb-2">Box Breathing</h2>
+      <p className="text-warm-500 font-medium mb-20 max-w-sm mx-auto">Breathe in, hold, breathe out and hold for four seconds each. A simple way to slow down when stress or panic builds.</p>
 
       <div className="relative w-48 h-48 mx-auto mb-20 flex items-center justify-center">
         {/* The Outer Breathing Aura */}
@@ -117,7 +117,7 @@ function BoxBreather() {
       }`}>
         <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:transition-all group-hover:duration-1000 group-hover:translate-x-full"></div>
         {active ? (
-          <><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/></svg> End Protocol</>
+          <><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/></svg> Stop</>
         ) : (
           <><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Routine</>
         )}

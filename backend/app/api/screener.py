@@ -24,13 +24,13 @@ class ScreenerSubmit(BaseModel):
 
 def _interpret_gad2(score: int) -> str:
     if score >= 3:
-        return "Possible anxiety disorder — consider speaking with a mental health professional."
+        return "Your answers suggest notable anxiety. Consider talking it through with a mental health professional."
     return "Anxiety symptoms appear minimal."
 
 
 def _interpret_phq2(score: int) -> str:
     if score >= 3:
-        return "Possible depressive disorder — consider speaking with a mental health professional."
+        return "Your answers suggest notable low mood. Consider talking it through with a mental health professional."
     return "Depressive symptoms appear minimal."
 
 

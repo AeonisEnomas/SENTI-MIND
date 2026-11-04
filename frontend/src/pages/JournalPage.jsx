@@ -10,7 +10,7 @@ import CrisisAlertBanner from "../components/CrisisAlertBanner";
 import GratitudeModal from "../components/GratitudeModal";
 import SentiBotAvatar from "../components/SentiBotAvatar";
 import { getCategoryConfig } from "../constants/categories";
-import { getCrisisSeverity } from "../lib/risk";
+import { getCrisisSeverity, hasCrisisLanguage } from "../lib/risk";
 import { getErrorMessage } from "../lib/errors";
 
 // Recharts is heavy; load the chart only once there is a result to show.
@@ -24,6 +24,8 @@ export default function JournalPage() {
   const [showInsight, setShowInsight] = useState(false);
   const [save, setSave] = useState(IDLE_SAVE);
   const [gratitudeStatus, setGratitudeStatus] = useState(null);
+  // Set when analysis failed but the submitted text itself contains crisis language.
+  const [offlineCrisis, setOfflineCrisis] = useState(false);
   const { result, loading, error, analyze, reset } = useAnalysis();
   const pendingMoodRef = useRef(null);
   const savedTimerRef = useRef(null);
@@ -87,8 +89,13 @@ export default function JournalPage() {
     if (!text.trim() || loading) return;
 
     // 1. Analyze
+    setOfflineCrisis(false);
     const analysisRes = await analyze(text);
-    if (!analysisRes) return;
+    if (!analysisRes) {
+      // The server's risk engine never ran, so check locally rather than show only an error.
+      setOfflineCrisis(hasCrisisLanguage(text));
+      return;
+    }
 
     // 2. Auto-save to Vault and Mood Log
     analyzedTextRef.current = text;
@@ -106,9 +113,11 @@ export default function JournalPage() {
   };
 
   const handleGratitude = async () => {
-    if (!text.trim()) return;
+    // Save the text that was analyzed; the textarea is read-only while a result is shown.
+    const entryText = analyzedTextRef.current;
+    if (!entryText.trim()) return;
     try {
-      await saveGratitude(text);
+      await saveGratitude(entryText);
       setGratitudeStatus("success");
     } catch (err) {
       console.error("Gratitude save failed:", err);
@@ -122,11 +131,12 @@ export default function JournalPage() {
     setText("");
     setShowInsight(false);
     setSave(IDLE_SAVE);
+    setOfflineCrisis(false);
     reset();
   };
 
   const catCfg = result ? getCategoryConfig(result.clinical.category) : null;
-  const crisisSeverity = getCrisisSeverity(result);
+  const crisisSeverity = getCrisisSeverity(result) ?? (offlineCrisis ? "critical" : null);
   const isSaving = save.status === "saving";
   const saveFailed = save.status === "entryFailed" || save.status === "moodFailed";
 
@@ -173,6 +183,8 @@ export default function JournalPage() {
               placeholder="Start typing your entry here..."
               rows={6}
               disabled={loading}
+              readOnly={Boolean(result)}
+              title={result ? "Start a new entry to write again" : undefined}
               className="medical-input resize-none text-base"
             />
 
@@ -224,7 +236,7 @@ export default function JournalPage() {
 
           {error && <div className="p-4 bg-rose-50 text-rose-700 rounded-lg" role="alert">{error}</div>}
 
-          {/* AI Clinical Insight Button - Underneath text */}
+          {/* AI Insight Button - Underneath text */}
           {result?.insight && (
             <button
               type="button"
@@ -234,7 +246,7 @@ export default function JournalPage() {
             >
               <span className="w-16 h-16 rounded-full bg-sage-100 flex-shrink-0 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow-inner border border-sage-200" aria-hidden="true">💡</span>
               <span className="block">
-                <span className="block font-semibold text-warm-800 text-lg tracking-tight">AI Clinical Insight Generated</span>
+                <span className="block font-semibold text-warm-800 text-lg tracking-tight">Your AI Insight Is Ready</span>
                 <span className="block text-sm text-warm-500 mt-1">We've identified actionable patterns tailored specifically to this entry.</span>
                 <span className="inline-flex items-center mt-3 text-sage-600 font-medium text-sm group-hover:underline">
                   Read Detailed Insight <span className="ml-1 group-hover:translate-x-1 transition-transform" aria-hidden="true">→</span>
@@ -295,7 +307,7 @@ export default function JournalPage() {
              <div className="h-full min-h-[360px] border-2 border-dashed border-sage-200 rounded-3xl flex flex-col items-center justify-center p-8 text-center bg-sage-50/50" role="status" aria-live="polite">
                <SentiBotAvatar emotion="loading" size="lg" animate={true} />
                <p className="text-sm font-semibold text-warm-600 tracking-tight mt-4">Analyzing Your Entry...</p>
-               <p className="text-xs text-warm-400 mt-2 leading-relaxed">SentiBot is reading your thoughts and preparing clinical insights.</p>
+               <p className="text-xs text-warm-400 mt-2 leading-relaxed">SentiBot is reading your entry and preparing insights.</p>
              </div>
            ) : (
              <div className="h-full min-h-[360px] border-2 border-dashed border-sage-200 rounded-3xl flex flex-col items-center justify-center text-warm-400 p-8 text-center bg-sage-50/50">
@@ -306,7 +318,7 @@ export default function JournalPage() {
                  <SentiBotAvatar emotion="idle" size="lg" animate={true} />
                </div>
                <p className="text-sm font-semibold text-warm-600 tracking-tight mt-4">Awaiting Entry</p>
-               <p className="text-xs mt-2 leading-relaxed">Write your journal entry and analyze it to view your real-time psychological metrics.</p>
+               <p className="text-xs mt-2 leading-relaxed">Write your journal entry and analyze it to see your mood, emotions and insights.</p>
              </div>
            )}
         </div>
