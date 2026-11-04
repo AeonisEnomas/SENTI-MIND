@@ -50,7 +50,7 @@ export default function GratitudeJarPage() {
     }
   };
 
-  if (loading) return <PageLoader label="Opening your jar..." />;
+  if (loading) return <PageLoader label="Opening your jar" slowHint />;
 
   if (loadError) {
     return (
