@@ -12,6 +12,7 @@ import SentiBotAvatar from "../components/SentiBotAvatar";
 import { getCategoryConfig } from "../constants/categories";
 import { getCrisisSeverity, hasCrisisLanguage } from "../lib/risk";
 import { getErrorMessage } from "../lib/errors";
+import PageLoader from "../components/PageLoader";
 
 // Recharts is heavy; load the chart only once there is a result to show.
 const EmotionChart = lazy(() => import("../components/EmotionChart"));
@@ -298,7 +299,7 @@ export default function JournalPage() {
 
                <div className="medical-card p-5">
                  <p className="text-[10px] font-bold uppercase tracking-wider text-warm-500 mb-4">Emotional Breakdown</p>
-                 <Suspense fallback={<div className="h-72 flex items-center justify-center text-xs text-warm-400">Loading chart...</div>}>
+                 <Suspense fallback={<PageLoader label="Loading chart..." size="sm" className="h-72 py-0" />}>
                    <EmotionChart emotions={result.emotions ?? []} />
                  </Suspense>
                </div>

@@ -3,6 +3,7 @@ import { getMoodHeatmap } from "../services/moodService";
 import { CATEGORY_CONFIG, getCategoryConfig } from "../constants/categories";
 import { lastNDates, parseLocalDate } from "../lib/dates";
 import { getErrorMessage } from "../lib/errors";
+import PageLoader from "../components/PageLoader";
 
 const LEGEND = Object.entries(CATEGORY_CONFIG).map(([cat, cfg]) => [cat, cfg.swatch]);
 
@@ -36,7 +37,7 @@ export default function MoodHeatmapPage() {
     };
   }, [reloadKey]);
 
-  if (loading) return <div className="text-center py-10" role="status">Loading heatmap...</div>;
+  if (loading) return <PageLoader label="Loading your heatmap..." />;
 
   if (error) {
     return (
