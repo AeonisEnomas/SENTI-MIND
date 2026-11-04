@@ -136,7 +136,7 @@ class TestRecovery:
         reason=(
             "v8 (transformer on raw text, r/SuicideWatch priors) misses negation here and "
             "predicts Depression. v7 passed via NEG_-scoped preprocessing. Over-alerting is the "
-            "preferred failure mode; documented in README/DOCUMENTATION.md known limitations."
+            "preferred failure mode; documented in docs/MODEL.md known limitations."
         ),
         strict=False,
     )

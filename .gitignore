@@ -1,44 +1,40 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
 .venv/
 venv/
-env/
 *.egg-info/
-dist/
 build/
 
-# Environment variables
+# Environment variables (only the documented template is tracked)
 .env
 *.env
 .env.*
 !.env.example
 
-# ML artefacts
+# Datasets and generated training splits (licensed for research use; never committed)
 *.csv
 backend/external/
-backend/app/models/emotion_onnx/
+backend/data/finetune/
 
 # Node / frontend
 node_modules/
 frontend/dist/
 frontend/.cache/
 
-# IDE
+# Editors and OS
 .vscode/
 .idea/
-*.DS_Store
+.DS_Store
 
-# Pytest / linters
+# Test and lint caches
 .pytest_cache/
 .ruff_cache/
 htmlcov/
 .coverage
 
-# Claude Code agent worktrees (live inside the repo)
-.claude/worktrees/
-
-# Generated
-graphify-out/
-backend/data/finetune/
+# Local-only notes and agent tooling
+.claude/
+CLAUDE.md
+docs/HANDOFF.md
+docs/deliverables/

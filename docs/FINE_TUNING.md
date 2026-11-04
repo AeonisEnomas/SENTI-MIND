@@ -220,4 +220,4 @@ Execution diverged from plan in two useful ways and one useful failure:
 | sklearn v7 | 0.645 | 0.664 | 0.71 | 29/39 | 0.614 |
 | v8 | 0.722 | 0.714 | 0.75 | 30/39 | 0.586 (truncated) |
 | **v9** | **0.742** | **0.734** | **0.82→0.83 F1** | **36/39** | **0.743** |
-_v9 full metrics: see `data/model_metadata.json` and README §Evaluation.
+_v9 full metrics: see `backend/data/model_metadata.json` and [MODEL.md](MODEL.md).

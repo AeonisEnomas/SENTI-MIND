@@ -6,7 +6,7 @@ import PageLoader from "./components/PageLoader";
 // Route-level code splitting: each page is its own chunk.
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
-const DashboardLayout = lazy(() => import("./pages/DashboardLayout"));
+const DashboardLayout = lazy(() => import("./layouts/DashboardLayout"));
 const JournalPage = lazy(() => import("./pages/JournalPage"));
 const MoodHeatmapPage = lazy(() => import("./pages/MoodHeatmapPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
